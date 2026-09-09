@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#0d120b"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>Panel de Control de Carrera — Enduro Evolution 2026</title>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <!-- Supabase JS Client v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- Pantalla de Bloqueo / Autenticación -->
+<div id="authScreen" class="admin-shell" style="display:none;">
+  <div class="admin-auth-card">
+    <div class="admin-auth-icon">🔒</div>
+    <div class="brand">
+      <small>DIRECCIÓN DE CARRERA</small>
+      <h1 style="font-size:24px; margin-top:6px;">ACCESO <span>ADMINISTRATIVO</span></h1>
+    </div>
+    <p style="color:var(--muted); font-size:12px; margin:14px 0 22px;">
+      Ingresa el código PIN para gestionar los tiempos oficiales de Enduro Evolution 2026.
+    </p>
+    <form id="authForm" onsubmit="return false;">
+      <div class="field" style="margin-bottom:14px;">
+        <label for="pinInput">PIN DE SEGURIDAD</label>
+        <input type="password" id="pinInput" placeholder="Código PIN" autocomplete="current-password" autofocus style="text-align:center; font-size:20px; letter-spacing:0.2em;"/>
+      </div>
+      <div id="authError" style="color:var(--danger); font-size:11px; margin-bottom:12px; display:none;">PIN incorrecto. Intenta nuevamente.</div>
+      <button type="submit" class="btn primary" id="loginBtn" style="width:100%;">DESBLOQUEAR PANEL</button>
+    </form>
+    <div style="margin-top:20px;">
+      <a href="../" class="btn subtle" style="width:100%;">VOLVER AL LIVE TIMING</a>
+    </div>
+  </div>
+</div>
+
+<!-- Panel de Control Principal (Visible tras autenticación) -->
+<main id="adminApp" class="admin-shell" style="display:none;">
+  <!-- Header Administrativo -->
+  <header class="admin-header">
+    <div class="admin-title-wrap">
+      <div class="brand"><small>DOMINICAN ENDURO SERIES</small></div>
+      <h1>CONTROL DE <span>CARRERA</span></h1>
+      <p>Gestión de tiempos en tiempo real · Fabio Silvestri vs Luis Peña</p>
+    </div>
+    <div class="header-badges">
+      <div class="connection-pill" id="adminConnectionBadge">
+        <span class="dot"></span><span id="adminConnectionText">Verificando...</span>
+      </div>
+      <button class="btn subtle" id="openSettingsBtn" title="Configurar Supabase">⚙ CONFIG</button>
+      <a href="../" target="_blank" class="btn" title="Abrir Live Timing en nueva pestaña">LIVE TIMING ↗</a>
+      <button class="btn subtle icon-only" id="logoutBtn" title="Cerrar sesión">🚪</button>
+    </div>
+  </header>
+
+  <!-- 1. Estado General de la Carrera -->
+  <section class="admin-panel-card">
+    <div class="card-title">
+      <span>1. Estado de la Carrera</span>
+      <span class="status-pill pre-race" id="currentStatusBadge">PRE-RACE</span>
+    </div>
+    <div class="status-buttons">
+      <button type="button" class="status-btn pre-race" id="statusPreRaceBtn" data-status="PRE-RACE">
+        PRE-RACE<br><small style="font-size:9px; opacity:0.8;">Esperando inicio</small>
+      </button>
+      <button type="button" class="status-btn en-curso" id="statusEnCursoBtn" data-status="EN CURSO">
+        EN CURSO<br><small style="font-size:9px; opacity:0.8;">Cronometraje activo</small>
+      </button>
+      <button type="button" class="status-btn finalizada" id="statusFinalizadaBtn" data-status="FINALIZADA">
+        FINALIZADA<br><small style="font-size:9px; opacity:0.8;">Ganador definitivo</small>
+      </button>
+    </div>
+  </section>
+
+  <!-- 2. Registro y Corrección de Tiempos por Etapa -->
+  <section class="admin-panel-card">
+    <div class="card-title">
+      <span>2. Registro de Tiempos</span>
+      <small style="color:var(--muted); font-size:12px; margin-left:auto;">Formato: <strong>mm:ss.mmm</strong> (ej. 02:31.420)</small>
+    </div>
+
+    <!-- Selector de Etapas -->
+    <div class="stage-tabs" id="stageTabs">
+      <button type="button" class="stage-tab active" data-stage="1">
+        ETAPA 01
+        <small id="tabStatus1">PENDIENTE</small>
+      </button>
+      <button type="button" class="stage-tab" data-stage="2">
+        ETAPA 02
+        <small id="tabStatus2">PENDIENTE</small>
+      </button>
+      <button type="button" class="stage-tab" data-stage="3">
+        ETAPA 03
+        <small id="tabStatus3">PENDIENTE</small>
+      </button>
+      <button type="button" class="stage-tab" data-stage="4">
+        ETAPA 04
+        <small id="tabStatus4">PENDIENTE</small>
+      </button>
+    </div>
+
+    <!-- Formulario de Entrada de Tiempos -->
+    <form id="stageForm">
+      <div class="riders-entry">
+        <!-- Entrada Fabio -->
+        <div class="rider-entry-card fabio">
+          <div class="entry-header">
+            <img src="../assets/fabio.png" alt="Fabio Silvestri"/>
+            <div>
+              <h4>Fabio Silvestri</h4>
+              <small>“La Polinada”</small>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inputFabio">Tiempo de Etapa</label>
+            <div class="time-input-wrap">
+              <input type="text" id="inputFabio" placeholder="02:31.420" inputmode="decimal" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="quick-helpers">
+            <button type="button" class="quick-pill" data-target="inputFabio" data-val="02:25.000">02:25</button>
+            <button type="button" class="quick-pill" data-target="inputFabio" data-val="02:30.000">02:30</button>
+            <button type="button" class="quick-pill" data-target="inputFabio" data-val="02:35.000">02:35</button>
+            <button type="button" class="quick-pill" data-clear="inputFabio">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- Entrada Luis -->
+        <div class="rider-entry-card luis">
+          <div class="entry-header">
+            <img src="../assets/luis.png" alt="Luis Peña"/>
+            <div>
+              <h4>Luis Peña</h4>
+              <small>“Don Gata”</small>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inputLuis">Tiempo de Etapa</label>
+            <div class="time-input-wrap">
+              <input type="text" id="inputLuis" placeholder="02:32.810" inputmode="decimal" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="quick-helpers">
+            <button type="button" class="quick-pill" data-target="inputLuis" data-val="02:25.000">02:25</button>
+            <button type="button" class="quick-pill" data-target="inputLuis" data-val="02:30.000">02:30</button>
+            <button type="button" class="quick-pill" data-target="inputLuis" data-val="02:35.000">02:35</button>
+            <button type="button" class="quick-pill" data-clear="inputLuis">Limpiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview de la Etapa Seleccionada -->
+      <div id="stageDiffPreview" style="margin-bottom:18px; padding:12px 16px; border-radius:12px; background:rgba(0,0,0,0.3); border:1px solid var(--line); font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center;">
+        <span id="previewText">Introduce los tiempos de la etapa</span>
+        <span id="previewWinnerTag"></span>
+      </div>
+
+      <!-- Botones de Acción de Etapa -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <button type="button" class="btn danger" id="clearStageBtn">
+          🗑 BORRAR / REABRIR ETAPA
+        </button>
+        <button type="submit" class="btn primary" id="saveStageBtn" style="padding:14px 28px; font-size:13px;">
+          ✓ GUARDAR TIEMPOS DE ETAPA
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 3. Tabla Resumen en Vivo de las 4 Etapas -->
+  <section class="admin-panel-card">
+    <div class="card-title">
+      <span>3. Resumen Oficial de Tiempos</span>
+      <button type="button" class="btn subtle" id="resetMatchupBtn" style="margin-left:auto; font-size:11px;">
+        ↺ REINICIAR MATCHUP COMPLETO
+      </button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Etapa</th>
+            <th>Estado</th>
+            <th>Fabio “La Polinada”</th>
+            <th>Luis “Don Gata”</th>
+            <th>Ganador Etapa</th>
+            <th>Diferencia</th>
+            <th style="text-align:right;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="adminSummaryTableBody">
+          <!-- Renderizado dinámico -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Modal de Configuración de Supabase -->
+<div class="modal" id="settingsModal" role="dialog" aria-hidden="true">
+  <div class="dialog">
+    <h3>Configuración de Supabase y Seguridad</h3>
+    <p>Conecta este portal a tu proyecto Supabase para sincronización en tiempo real multiusuario.</p>
+    
+    <form id="settingsForm" onsubmit="return false;">
+      <div class="field" style="margin-bottom:12px;">
+        <label for="cfgSupabaseUrl">SUPABASE PROJECT URL</label>
+        <input type="url" id="cfgSupabaseUrl" placeholder="https://xyzcompany.supabase.co" autocomplete="off"/>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label for="cfgSupabaseKey">SUPABASE ANON PUBLIC KEY</label>
+        <input type="password" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off"/>
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="cfgAdminPin">PIN DE ACCESO ADMINISTRATIVO</label>
+        <input type="text" id="cfgAdminPin" placeholder="enduro2026" autocomplete="off"/>
+      </div>
+
+      <div style="background:rgba(255,176,0,0.08); border:1px solid rgba(255,176,0,0.25); border-radius:12px; padding:12px; font-size:11px; color:var(--muted); margin-bottom:16px;">
+        💡 <strong>Instrucciones:</strong> Recuerda haber ejecutado previamente el archivo <code>supabase-schema.sql</code> en el SQL Editor de tu proyecto Supabase para crear las tablas y habilitar Realtime.
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn" id="closeSettingsBtn">Cancelar</button>
+        <button type="submit" class="btn primary" id="saveSettingsBtn">Guardar y Conectar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="adminToast">Operación realizada</div>
+
+<!-- Scripts -->
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/supabase-service.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  const AUTH_SESSION_KEY = 'enduro_admin_authenticated';
+  const { parseTime, fmt, dFmt } = window.EnduroTime;
+  const service = window.EnduroService;
+
+  let activeStage = 1;
+  let currentState = null;
+
+  // 1. Verificación de Autenticación
+  function isAuthenticated() {
+    return sessionStorage.getItem(AUTH_SESSION_KEY) === 'true' || localStorage.getItem(AUTH_SESSION_KEY) === 'true';
+  }
+
+  function checkAuth() {
+    const authScreen = document.getElementById('authScreen');
+    const adminApp = document.getElementById('adminApp');
+    if (isAuthenticated()) {
+      authScreen.style.display = 'none';
+      adminApp.style.display = 'block';
+      if (currentState) {
+        loadStageInputs(currentState);
+      }
+    } else {
+      authScreen.style.display = 'block';
+      adminApp.style.display = 'none';
+    }
+  }
+
+  document.getElementById('authForm').addEventListener('submit', () => {
+    const pin = document.getElementById('pinInput').value.trim();
+    const config = window.EnduroConfig.get();
+    const validPin = config.adminPin || window.EnduroConfig.DEFAULT_PIN;
+
+    if (pin === validPin) {
+      sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+      document.getElementById('authError').style.display = 'none';
+      checkAuth();
+      showToast('Acceso concedido');
+    } else {
+      document.getElementById('authError').style.display = 'block';
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    checkAuth();
+    showToast('Sesión cerrada');
+  });
+
+  // 2. Notificaciones Toast
+  function showToast(msg) {
+    const toast = document.getElementById('adminToast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  // Elementos de estado de carrera
+  const statusBtns = {
+    'PRE-RACE': document.getElementById('statusPreRaceBtn'),
+    'EN CURSO': document.getElementById('statusEnCursoBtn'),
+    'FINALIZADA': document.getElementById('statusFinalizadaBtn')
+  };
+
+  const stageTabs = document.querySelectorAll('.stage-tab');
+
+  // 3. Indicador de Conexión
+  service.onStatusChange((status) => {
+    const badge = document.getElementById('adminConnectionBadge');
+    const text = document.getElementById('adminConnectionText');
+    if (!badge || !text) return;
+
+    badge.className = 'connection-pill ' + (status === 'connected' ? 'connected' : 'offline');
+    if (status === 'connected') {
+      text.textContent = 'SUPABASE REALTIME ACTIVO';
+    } else if (status === 'connecting') {
+      text.textContent = 'CONECTANDO A SUPABASE...';
+    } else {
+      text.textContent = 'MODO LOCAL (OFFLINE)';
+    }
+  });
+
+  // 4. Suscripción a Actualizaciones de Estado
+  service.onUpdate((state) => {
+    currentState = state;
+    render(state);
+  });
+
+  // 5. Cambio de Estado de Carrera
+  Object.entries(statusBtns).forEach(([status, btn]) => {
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        await service.updateRaceStatus(status);
+        btn.disabled = false;
+        showToast(`Estado cambiado a: ${status}`);
+      });
+    }
+  });
+
+  // 6. Selección de Pestañas de Etapa
+  stageTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const st = parseInt(tab.getAttribute('data-stage'), 10);
+      selectStage(st);
+    });
+  });
+
+  function selectStage(numero) {
+    activeStage = numero;
+    stageTabs.forEach((tab) => {
+      const isTarget = parseInt(tab.getAttribute('data-stage'), 10) === numero;
+      tab.classList.toggle('active', isTarget);
+    });
+
+    if (currentState) {
+      loadStageInputs(currentState);
+    }
+  }
+
+  function loadStageInputs(state) {
+    const stage = state.stages.find(s => s.numero === activeStage);
+    const inputFabio = document.getElementById('inputFabio');
+    const inputLuis = document.getElementById('inputLuis');
+
+    if (stage) {
+      inputFabio.value = stage.fabioMs !== null ? fmt(stage.fabioMs) : '';
+      inputLuis.value = stage.luisMs !== null ? fmt(stage.luisMs) : '';
+    } else {
+      inputFabio.value = '';
+      inputLuis.value = '';
+    }
+    updateDiffPreview();
+  }
+
+  // Helpers de llenado rápido de tiempo
+  document.querySelectorAll('.quick-pill').forEach((pill) => {
+    pill.addEventListener('click', () => {
+      const targetId = pill.getAttribute('data-target');
+      const clearId = pill.getAttribute('data-clear');
+      if (targetId) {
+        document.getElementById(targetId).value = pill.getAttribute('data-val');
+      } else if (clearId) {
+        document.getElementById(clearId).value = '';
+      }
+      updateDiffPreview();
+    });
+  });
+
+  function updateDiffPreview() {
+    const fVal = document.getElementById('inputFabio').value;
+    const lVal = document.getElementById('inputLuis').value;
+    const fMs = parseTime(fVal);
+    const lMs = parseTime(lVal);
+
+    const previewText = document.getElementById('previewText');
+    const previewWinnerTag = document.getElementById('previewWinnerTag');
+
+    if (!isNaN(fMs) && !isNaN(lMs) && fMs !== null && lMs !== null) {
+      const diff = lMs - fMs;
+      if (diff === 0) {
+        previewText.textContent = `Etapa ${activeStage}: Empate exacto (${fmt(fMs)})`;
+        previewWinnerTag.innerHTML = '<span class="winner-chip">Empate</span>';
+      } else if (diff > 0) {
+        previewText.textContent = `Etapa ${activeStage}: Fabio gana por +${dFmt(diff)}`;
+        previewWinnerTag.innerHTML = '<span class="winner-chip">Fabio</span>';
+      } else {
+        previewText.textContent = `Etapa ${activeStage}: Luis gana por +${dFmt(diff)}`;
+        previewWinnerTag.innerHTML = '<span class="winner-chip">Luis</span>';
+      }
+    } else {
+      previewText.textContent = `Etapa ${activeStage}: Pendiente de tiempos`;
+      previewWinnerTag.innerHTML = '';
+    }
+  }
+
+  document.getElementById('inputFabio').addEventListener('input', updateDiffPreview);
+  document.getElementById('inputLuis').addEventListener('input', updateDiffPreview);
+
+  // 7. Guardar Tiempos de Etapa
+  async function saveCurrentStage() {
+    const fVal = document.getElementById('inputFabio').value.trim();
+    const lVal = document.getElementById('inputLuis').value.trim();
+
+    const fMs = parseTime(fVal);
+    const lMs = parseTime(lVal);
+
+    if (isNaN(fMs) || isNaN(lMs) || fMs === null || lMs === null) {
+      alert('Por favor ingresa un tiempo válido para ambos corredores en formato mm:ss.mmm (ej. 02:31.420)');
+      return;
+    }
+
+    const saveBtn = document.getElementById('saveStageBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Guardando...';
+
+    const ok = await service.saveStageTimes(activeStage, fMs, lMs);
+    saveBtn.disabled = false;
+    saveBtn.textContent = '✓ GUARDAR TIEMPOS DE ETAPA';
+
+    if (ok) {
+      showToast(`Etapa ${activeStage} guardada exitosamente`);
+      updateDiffPreview();
+    } else {
+      alert('Ocurrió un problema al guardar los tiempos.');
+    }
+  }
+
+  document.getElementById('saveStageBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    saveCurrentStage();
+  });
+
+  document.getElementById('stageForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveCurrentStage();
+  });
+
+  // 8. Borrar / Reabrir Etapa
+  document.getElementById('clearStageBtn').addEventListener('click', async () => {
+    if (!confirm(`¿Estás seguro de borrar los tiempos y reabrir la Etapa ${activeStage}?`)) return;
+
+    const clearBtn = document.getElementById('clearStageBtn');
+    clearBtn.disabled = true;
+    const ok = await service.clearStageTimes(activeStage);
+    clearBtn.disabled = false;
+
+    if (ok) {
+      document.getElementById('inputFabio').value = '';
+      document.getElementById('inputLuis').value = '';
+      updateDiffPreview();
+      showToast(`Etapa ${activeStage} reabierta`);
+    }
+  });
+
+  // 9. Reiniciar Matchup Completo
+  document.getElementById('resetMatchupBtn').addEventListener('click', async () => {
+    if (!confirm('¡ATENCIÓN! Esto borrará todos los tiempos de las 4 etapas y reiniciará la carrera a PRE-RACE. ¿Deseas continuar?')) return;
+
+    await service.resetMatchup();
+    loadStageInputs(currentState);
+    showToast('Matchup reiniciado por completo');
+  });
+
+  // 10. Render del Panel Admin
+  function render(state) {
+    if (!state) return;
+    const { matchup, stages } = state;
+
+    // Actualizar badge de estado
+    const badge = document.getElementById('currentStatusBadge');
+    if (badge) {
+      const cls = (matchup.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+      badge.className = `status-pill ${cls}`;
+      badge.textContent = matchup.estado;
+    }
+
+    // Botones de estado activos
+    Object.entries(statusBtns).forEach(([status, btn]) => {
+      if (btn) {
+        const cls = status.toLowerCase().replace(' ', '-');
+        btn.className = `status-btn ${cls}` + (matchup.estado === status ? ' active' : '');
+      }
+    });
+
+    // Subtítulos de pestañas de etapas
+    stages.forEach((s) => {
+      const sub = document.getElementById(`tabStatus${s.numero}`);
+      if (sub) {
+        sub.textContent = s.completed ? 'FINALIZADA' : 'PENDIENTE';
+        sub.style.color = s.completed ? 'var(--gold)' : 'var(--muted)';
+      }
+    });
+
+    // Tabla de resumen en vivo
+    const tbody = document.getElementById('adminSummaryTableBody');
+    if (tbody) {
+      tbody.innerHTML = stages.map((s) => {
+        const done = s.completed;
+        let winnerText = '—';
+        let deltaText = '—';
+
+        if (done) {
+          if (s.winner === 'tie') {
+            winnerText = '<span class="winner-chip">Empate</span>';
+            deltaText = '0.000s';
+          } else if (s.winner === 'fabio') {
+            winnerText = '<span class="winner-chip">Fabio</span>';
+            deltaText = `+${dFmt(s.deltaMs)}`;
+          } else {
+            winnerText = '<span class="winner-chip">Luis</span>';
+            deltaText = `+${dFmt(s.deltaMs)}`;
+          }
+        }
+
+        return `
+          <tr>
+            <td><strong>ETAPA 0${s.numero}</strong></td>
+            <td><span class="status ${done ? 'done' : ''}">${done ? 'FINALIZADA' : 'PENDIENTE'}</span></td>
+            <td>${fmt(s.fabioMs)}</td>
+            <td>${fmt(s.luisMs)}</td>
+            <td>${winnerText}</td>
+            <td>${deltaText}</td>
+            <td style="text-align:right;">
+              <button type="button" class="btn subtle" style="padding:6px 12px; font-size:10px;" onclick="window._adminSelectStage(${s.numero})">
+                EDITAR
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  window._adminSelectStage = (num) => {
+    selectStage(num);
+    window.scrollTo({ top: 260, behavior: 'smooth' });
+  };
+
+  // 11. Modal de Configuración de Supabase
+  const settingsModal = document.getElementById('settingsModal');
+  const openSettingsBtn = document.getElementById('openSettingsBtn');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+
+  openSettingsBtn.addEventListener('click', () => {
+    const config = window.EnduroConfig.get();
+    document.getElementById('cfgSupabaseUrl').value = config.supabaseUrl || '';
+    document.getElementById('cfgSupabaseKey').value = config.supabaseAnonKey || '';
+    document.getElementById('cfgAdminPin').value = config.adminPin || 'enduro2026';
+    settingsModal.classList.add('open');
+  });
+
+  closeSettingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('open');
+  });
+
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.remove('open');
+  });
+
+  document.getElementById('settingsForm').addEventListener('submit', async () => {
+    const url = document.getElementById('cfgSupabaseUrl').value.trim();
+    const key = document.getElementById('cfgSupabaseKey').value.trim();
+    const pin = document.getElementById('cfgAdminPin').value.trim() || 'enduro2026';
+
+    window.EnduroConfig.save({
+      supabaseUrl: url,
+      supabaseAnonKey: key,
+      adminPin: pin
+    });
+
+    settingsModal.classList.remove('open');
+    showToast('Configuración guardada. Reconectando...');
+    await service.init();
+  });
+
+  // Inicialización
+  checkAuth();
+})();
+</script>
+</body>
+</html>
