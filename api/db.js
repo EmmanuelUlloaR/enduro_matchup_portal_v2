@@ -93,4 +93,16 @@ async function ensureSchema(sql) {
   schemaInitialized = true;
 }
 
-module.exports = { getSql, ensureSchema };
+function getBody(req) {
+  if (!req.body) return {};
+  if (typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body);
+    } catch (e) {
+      return {};
+    }
+  }
+  return req.body;
+}
+
+module.exports = { getSql, ensureSchema, getBody };

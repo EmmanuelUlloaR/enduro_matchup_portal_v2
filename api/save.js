@@ -1,9 +1,10 @@
-const { getSql, ensureSchema } = require('./db');
+const { getSql, ensureSchema, getBody } = require('./db');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -14,10 +15,13 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { stageNumero, fabioMs, luisMs } = req.body || {};
+    const body = getBody(req);
+    const stageNumero = Number(body.stageNumero);
+    const fabioMs = body.fabioMs !== undefined && body.fabioMs !== null ? Number(body.fabioMs) : NaN;
+    const luisMs = body.luisMs !== undefined && body.luisMs !== null ? Number(body.luisMs) : NaN;
 
-    if (!stageNumero || fabioMs === undefined || luisMs === undefined) {
-      return res.status(400).json({ ok: false, error: 'Missing stageNumero, fabioMs, or luisMs' });
+    if (!stageNumero || isNaN(fabioMs) || isNaN(luisMs)) {
+      return res.status(400).json({ ok: false, error: 'Missing or invalid stageNumero, fabioMs, or luisMs', received: body });
     }
 
     const sql = getSql();
@@ -30,7 +34,7 @@ module.exports = async function handler(req, res) {
     const luisId = participants[1]?.id;
 
     // 2. Obtener etapa
-    const [stage] = await sql`SELECT id FROM stages WHERE matchup_id = ${matchup.id} AND numero = ${Number(stageNumero)} LIMIT 1`;
+    const [stage] = await sql`SELECT id FROM stages WHERE matchup_id = ${matchup.id} AND numero = ${stageNumero} LIMIT 1`;
     if (!stage) {
       return res.status(404).json({ ok: false, error: 'Stage not found' });
     }
@@ -38,16 +42,16 @@ module.exports = async function handler(req, res) {
     // 3. Upsert tiempos para Fabio y Luis
     await sql`
       INSERT INTO stage_times (stage_id, participant_id, time_ms, updated_at)
-      VALUES (${stage.id}, ${fabioId}, ${Number(fabioMs)}, NOW())
+      VALUES (${stage.id}, ${fabioId}, ${fabioMs}, NOW())
       ON CONFLICT (stage_id, participant_id)
-      DO UPDATE SET time_ms = ${Number(fabioMs)}, updated_at = NOW();
+      DO UPDATE SET time_ms = ${fabioMs}, updated_at = NOW();
     `;
 
     await sql`
       INSERT INTO stage_times (stage_id, participant_id, time_ms, updated_at)
-      VALUES (${stage.id}, ${luisId}, ${Number(luisMs)}, NOW())
+      VALUES (${stage.id}, ${luisId}, ${luisMs}, NOW())
       ON CONFLICT (stage_id, participant_id)
-      DO UPDATE SET time_ms = ${Number(luisMs)}, updated_at = NOW();
+      DO UPDATE SET time_ms = ${luisMs}, updated_at = NOW();
     `;
 
     // 4. Actualizar etapa a FINALIZADA

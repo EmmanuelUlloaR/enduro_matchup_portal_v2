@@ -14,20 +14,19 @@
 
   // Fetch inteligente con fallback automático a la API productiva en Vercel (Neon Postgres)
   async function apiFetch(path, options = {}) {
-    const isVercel = window.location.hostname.endsWith('vercel.app');
-    if (isVercel) {
-      return await fetch(path, options);
-    }
-    // Si estamos en localhost o entorno local:
+    // 1. Probar ruta relativa en el mismo origen (directo en Vercel o en cualquier dominio de producción)
     try {
-      const localResp = await fetch(path, options);
-      if (localResp.ok) return localResp;
+      const resp = await fetch(path, options);
+      if (resp && resp.ok) return resp;
+      if (resp && resp.status !== 404) return resp;
     } catch (e) {
       // Ignorar fallo de red local
     }
-    // Fallback directo a la API en Vercel conectada a Neon Postgres
+
+    // 2. Si dio 404 o falló localmente, conectar directo a Vercel Neon API
     try {
-      return await fetch(REMOTE_API_ORIGIN + path, options);
+      const fullUrl = REMOTE_API_ORIGIN + path;
+      return await fetch(fullUrl, options);
     } catch (err) {
       console.warn('Fallback a API remota de Neon falló:', err);
       return null;

@@ -1,9 +1,10 @@
-const { getSql, ensureSchema } = require('./db');
+const { getSql, ensureSchema, getBody } = require('./db');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -14,12 +15,17 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { stageNumero } = req.body || {};
+    const body = getBody(req);
+    const stageNumero = Number(body.stageNumero);
+
+    if (!stageNumero) {
+      return res.status(400).json({ ok: false, error: 'Missing or invalid stageNumero' });
+    }
 
     const sql = getSql();
     await ensureSchema(sql);
 
-    const [stage] = await sql`SELECT id FROM stages WHERE numero = ${Number(stageNumero)} LIMIT 1`;
+    const [stage] = await sql`SELECT id FROM stages WHERE numero = ${stageNumero} LIMIT 1`;
     if (!stage) {
       return res.status(404).json({ ok: false, error: 'Stage not found' });
     }

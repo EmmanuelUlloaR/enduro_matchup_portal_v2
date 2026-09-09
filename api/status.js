@@ -1,9 +1,10 @@
-const { getSql, ensureSchema } = require('./db');
+const { getSql, ensureSchema, getBody } = require('./db');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -14,10 +15,11 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { status } = req.body || {};
+    const body = getBody(req);
+    const { status } = body;
 
     if (!['PRE-RACE', 'EN CURSO', 'FINALIZADA'].includes(status)) {
-      return res.status(400).json({ ok: false, error: 'Invalid status' });
+      return res.status(400).json({ ok: false, error: 'Invalid status', received: body });
     }
 
     const sql = getSql();
