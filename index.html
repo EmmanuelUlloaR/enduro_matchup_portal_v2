@@ -1,473 +1,464 @@
 <!doctype html>
 <html lang="es">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="theme-color" content="#0d120b"/>
-  <meta name="description" content="Live Timing oficial del Match Up en Llamas — Enduro Evolution 2026: Fabio Silvestri vs Luis Peña."/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0d120b" />
+  <meta name="description"
+    content="Live Timing oficial del Match Up en Llamas — Enduro Evolution 2026: Fabio Silvestri vs Luis Peña." />
   <title>Live Timing — Enduro Evolution 2026 | Match Up en Llamas</title>
-  <link rel="stylesheet" href="assets/css/main.css?v=20260909_2"/>
+  <link rel="stylesheet" href="assets/css/main.css?v=20260909_2" />
   <!-- Supabase JS Client v2 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
 
-<main class="shell">
-  <!-- Top Bar -->
-  <header class="top">
-    <div class="brand">
-      <small>DOMINICAN ENDURO SERIES</small>
-      <h1>ENDURO <span>EVOLUTION</span> 2026</h1>
-    </div>
-    <div class="header-badges">
-      <span class="status-pill pre-race" id="raceStatusBadge">PRE-RACE</span>
-      <div class="live-pill" id="liveIndicator"><i></i><span id="raceStateText">LIVE TIMING</span></div>
-      <div class="connection-pill" id="connectionBadge" title="Estado de sincronización en tiempo real">
-        <span class="dot"></span><span id="connectionText">Sincronizando...</span>
+  <main class="shell">
+    <!-- Top Bar -->
+    <header class="top">
+      <div class="brand">
+        <small>DOMINICAN ENDURO SERIES</small>
+        <h1>ENDURO <span>EVOLUTION</span> 2026</h1>
       </div>
-    </div>
-  </header>
-
-  <!-- Race Ribbon (Etapas ganadas y estado actual) -->
-  <section class="race-ribbon" aria-label="Marcador general">
-    <div class="ribbon-side">
-      <span class="score-badge">FABIO <b id="fabioScore">0</b></span>
-      <span>etapas ganadas</span>
-    </div>
-    <div class="ribbon-center">
-      <small id="ribbonStage">PRE-RACE</small>
-      <strong id="ribbonValue">Esperando Etapa 1</strong>
-    </div>
-    <div class="ribbon-side right">
-      <span>etapas ganadas</span>
-      <span class="score-badge"><b id="luisScore">0</b> LUIS</span>
-    </div>
-  </section>
-
-  <!-- Hero Section (Fabio vs Luis) -->
-  <section class="hero" id="heroSection">
-    <!-- Fabio Card -->
-    <article class="rider fabio" id="fabioCard">
-      <img src="assets/fabio.png" alt="Fabio La Polinada Silvestri" id="fabioImg">
-      <div class="rider-info">
-        <div class="eyebrow">RIDER 01</div>
-        <div class="name" id="fabioName">Fabio</div>
-        <div class="nick" id="fabioNick">“La Polinada”</div>
-        <div class="surname" id="fabioSurname">SILVESTRI</div>
-        <div class="total">
-          <small>TIEMPO ACUMULADO</small>
-          <span id="fabioTotal">--:--.---</span>
+      <div class="header-badges">
+        <span class="status-pill pre-race" id="raceStatusBadge">PRE-RACE</span>
+        <div class="live-pill" id="liveIndicator"><i></i><span id="raceStateText">LIVE TIMING</span></div>
+        <div class="connection-pill" id="connectionBadge" title="Estado de sincronización en tiempo real">
+          <span class="dot"></span><span id="connectionText">Sincronizando...</span>
         </div>
-        <div class="leader-tag" id="fabioTag"></div>
       </div>
-    </article>
+    </header>
 
-    <!-- Versus Centerpiece -->
-    <div class="versus">
-      <div class="kicker">MATCH UP</div>
-      <div class="firetitle">EN <span>LLAMAS!</span></div>
-      <div class="vs">VS</div>
-      <div class="leadbox" id="leadBox">Esperando tiempos...</div>
-      <div class="strip" id="strip" aria-label="Progreso de 4 etapas">
-        <span id="dot1"></span>
-        <span id="dot2"></span>
-        <span id="dot3"></span>
-        <span id="dot4"></span>
+    <!-- Race Ribbon (Etapas ganadas y estado actual) -->
+    <section class="race-ribbon" aria-label="Marcador general">
+      <div class="ribbon-side">
+        <span class="score-badge">FABIO <b id="fabioScore">0</b></span>
+        <span>etapas ganadas</span>
       </div>
-    </div>
+      <div class="ribbon-center">
+        <small id="ribbonStage">PRE-RACE</small>
+        <strong id="ribbonValue">Esperando Etapa 1</strong>
+      </div>
+      <div class="ribbon-side right">
+        <span>etapas ganadas</span>
+        <span class="score-badge"><b id="luisScore">0</b> LUIS</span>
+      </div>
+    </section>
 
-    <!-- Luis Card -->
-    <article class="rider luis" id="luisCard">
-      <img src="assets/luis.png" alt="Luis Don Gata Peña" id="luisImg">
-      <div class="rider-info">
-        <div class="eyebrow">RIDER 02</div>
-        <div class="name" id="luisName">Luis</div>
-        <div class="nick" id="luisNick">“Don Gata”</div>
-        <div class="surname" id="luisSurname">PEÑA</div>
-        <div class="total">
-          <small>TIEMPO ACUMULADO</small>
-          <span id="luisTotal">--:--.---</span>
+    <!-- Hero Section (Fabio vs Luis) -->
+    <section class="hero" id="heroSection">
+      <!-- Fabio Card -->
+      <article class="rider fabio" id="fabioCard">
+        <img src="assets/fabio.png" alt="Fabio La Polinada Silvestri" id="fabioImg">
+        <div class="rider-info">
+          <div class="eyebrow">RIDER 01</div>
+          <div class="name" id="fabioName">Fabio</div>
+          <div class="nick" id="fabioNick">“La Polinada”</div>
+          <div class="surname" id="fabioSurname">SILVESTRI</div>
+          <div class="total">
+            <small>TIEMPO ACUMULADO</small>
+            <span id="fabioTotal">--:--.---</span>
+          </div>
+          <div class="leader-tag" id="fabioTag"></div>
         </div>
-        <div class="leader-tag" id="luisTag"></div>
-      </div>
-    </article>
-  </section>
+      </article>
 
-  <!-- Section Head Etapas -->
-  <div class="section-head">
-    <div>
-      <h2>Etapas Especiales</h2>
-      <p>4 especiales cronometradas · Menor acumulado gana el matchup</p>
+      <!-- Versus Centerpiece -->
+      <div class="versus">
+        <div class="kicker">MATCH UP</div>
+        <div class="firetitle">EN <span>LLAMAS!</span></div>
+        <div class="vs">VS</div>
+        <div class="leadbox" id="leadBox">Esperando tiempos...</div>
+        <div class="strip" id="strip" aria-label="Progreso de 4 etapas">
+          <span id="dot1"></span>
+          <span id="dot2"></span>
+          <span id="dot3"></span>
+          <span id="dot4"></span>
+        </div>
+      </div>
+
+      <!-- Luis Card -->
+      <article class="rider luis" id="luisCard">
+        <img src="assets/luis.png" alt="Luis Don Gata Peña" id="luisImg">
+        <div class="rider-info">
+          <div class="eyebrow">RIDER 02</div>
+          <div class="name" id="luisName">Luis</div>
+          <div class="nick" id="luisNick">“Don Gata”</div>
+          <div class="surname" id="luisSurname">PEÑA</div>
+          <div class="total">
+            <small>TIEMPO ACUMULADO</small>
+            <span id="luisTotal">--:--.---</span>
+          </div>
+          <div class="leader-tag" id="luisTag"></div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Section Head Etapas -->
+    <div class="section-head">
+      <div>
+        <h2>Etapas Especiales</h2>
+        <p>4 especiales cronometradas · Menor acumulado gana el matchup</p>
+      </div>
+      <p id="updatedAtText">Esperando sincronización...</p>
     </div>
-    <p id="updatedAtText">Esperando sincronización...</p>
+
+    <!-- Stages Grid -->
+    <section class="stages" id="stagesContainer" aria-label="Etapas de la carrera"></section>
+
+    <!-- General Battle Summary -->
+    <section class="summary" aria-label="Resumen de la batalla general">
+      <div class="section-head" style="margin:0">
+        <div>
+          <h2>Batalla General</h2>
+          <p id="completedStagesText">0 / 4 etapas completadas</p>
+        </div>
+      </div>
+      <div class="battlebar" title="Tendencia de ventaja">
+        <div class="marker" id="battleMarker"></div>
+      </div>
+      <div class="labels">
+        <span>Fabio “La Polinada”</span>
+        <span>Luis “Don Gata”</span>
+      </div>
+      <div class="sumgrid">
+        <div>
+          <div class="sumname">Fabio “La Polinada”</div>
+          <div class="sumtime" id="fabioSumTotal">--:--.---</div>
+        </div>
+        <div class="sumlead" id="sumLeadText">Sin diferencia todavía</div>
+        <div class="right">
+          <div class="sumname">Luis “Don Gata”</div>
+          <div class="sumtime" id="luisSumTotal">--:--.---</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EB Timing Integrated Footer Card (Motorsport Dark Theme) -->
+    <footer class="eb-footer-card">
+      <div class="eb-footer-grid">
+        <!-- Col 1: Marca y Slogan -->
+        <div class="eb-brand-block">
+          <a href="https://www.ebtiming.com" target="_blank" rel="noopener" class="eb-logo-link"
+            title="Visitar ebtiming.com">
+            <img src="assets/ebtiming-logo.png" alt="EB Timing">
+          </a>
+          <div class="eb-brand-badge">EBTIMING</div>
+          <p class="eb-brand-desc">
+            Líderes en cronometraje deportivo y gestión de eventos de alto rendimiento. Precisión garantizada y
+            transmisión de tiempos en vivo para el <strong>Enduro Evolution 2026</strong>.
+          </p>
+          <div class="eb-brand-slogan">“Precisión y eficiencia, nuestra especialidad”</div>
+        </div>
+
+        <!-- Col 2: Contacto Directo -->
+        <div class="eb-contact-block">
+          <div class="eb-section-title">Contacto Oficial</div>
+          <ul class="eb-contact-items">
+            <li class="eb-contact-row">
+              <span class="eb-icon-bubble">📞</span>
+              <div>
+                <span class="label">Teléfono / WhatsApp</span>
+                <a href="https://wa.me/18097966103" target="_blank" rel="noopener">+1 (809) 796-6103</a>
+              </div>
+            </li>
+            <li class="eb-contact-row">
+              <span class="eb-icon-bubble">✉️</span>
+              <div>
+                <span class="label">Correo Electrónico</span>
+                <a href="mailto:ebtiming@gmail.com">ebtiming@gmail.com</a>
+              </div>
+            </li>
+
+          </ul>
+        </div>
+
+        <!-- Col 3: Acciones y Servicios -->
+        <div class="eb-actions-col">
+          <div class="eb-section-title">Servicios EB Timing</div>
+          <a href="https://www.ebtiming.com/contacto" target="_blank" rel="noopener" class="eb-btn-cta">
+            Cotizar Cronometraje ↗
+          </a>
+
+
+        </div>
+      </div>
+
+      <!-- Barra Inferior -->
+      <div class="eb-footer-bottom">
+        <div>
+          © 2026 <strong>EB TIMING</strong> · Todos los derechos reservados · Cronometrador Oficial de <strong>Enduro
+            Evolution 2026</strong>
+        </div>
+        <div>
+          <a href="admin/" title="Acceso al Panel de Control de Carrera">Acceso Dirección de Carrera 🔒</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Floating Viewer Controls -->
+  <div class="controls">
+    <button class="btn icon-only" id="fullscreenBtn" title="Pantalla completa" aria-label="Pantalla completa">⛶</button>
+    <a href="admin/" class="btn subtle" title="Panel administrativo">🔒 ADMIN</a>
   </div>
 
-  <!-- Stages Grid -->
-  <section class="stages" id="stagesContainer" aria-label="Etapas de la carrera"></section>
+  <!-- Event Flash Banner -->
+  <div class="event-flash" id="eventFlash" role="alert" aria-live="polite">
+    <small id="eventFlashKicker">RESULTADO REGISTRADO</small>
+    <strong id="eventFlashText">Etapa actualizada</strong>
+  </div>
 
-  <!-- General Battle Summary -->
-  <section class="summary" aria-label="Resumen de la batalla general">
-    <div class="section-head" style="margin:0">
-      <div>
-        <h2>Batalla General</h2>
-        <p id="completedStagesText">0 / 4 etapas completadas</p>
-      </div>
-    </div>
-    <div class="battlebar" title="Tendencia de ventaja">
-      <div class="marker" id="battleMarker"></div>
-    </div>
-    <div class="labels">
-      <span>Fabio “La Polinada”</span>
-      <span>Luis “Don Gata”</span>
-    </div>
-    <div class="sumgrid">
-      <div>
-        <div class="sumname">Fabio “La Polinada”</div>
-        <div class="sumtime" id="fabioSumTotal">--:--.---</div>
-      </div>
-      <div class="sumlead" id="sumLeadText">Sin diferencia todavía</div>
-      <div class="right">
-        <div class="sumname">Luis “Don Gata”</div>
-        <div class="sumtime" id="luisSumTotal">--:--.---</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- EB Timing Integrated Footer Card (Motorsport Dark Theme) -->
-  <footer class="eb-footer-card">
-    <div class="eb-footer-grid">
-      <!-- Col 1: Marca y Slogan -->
-      <div class="eb-brand-block">
-        <a href="https://www.ebtiming.com" target="_blank" rel="noopener" class="eb-logo-link" title="Visitar ebtiming.com">
-          <img src="assets/ebtiming-logo.png" alt="EB Timing">
-        </a>
-        <div class="eb-brand-badge">CRONOMETRAJE OFICIAL DEL EVENTO</div>
-        <p class="eb-brand-desc">
-          Líderes en cronometraje deportivo y gestión de eventos de alto rendimiento. Precisión garantizada y transmisión de tiempos en vivo para el <strong>Enduro Evolution 2026</strong>.
-        </p>
-        <div class="eb-brand-slogan">“Precisión y eficiencia, nuestra especialidad”</div>
-      </div>
-
-      <!-- Col 2: Contacto Directo -->
-      <div class="eb-contact-block">
-        <div class="eb-section-title">Contacto Oficial</div>
-        <ul class="eb-contact-items">
-          <li class="eb-contact-row">
-            <span class="eb-icon-bubble">📞</span>
-            <div>
-              <span class="label">Teléfono / WhatsApp</span>
-              <a href="https://wa.me/18097966103" target="_blank" rel="noopener">+1 (809) 796-6103</a>
-            </div>
-          </li>
-          <li class="eb-contact-row">
-            <span class="eb-icon-bubble">✉️</span>
-            <div>
-              <span class="label">Correo Electrónico</span>
-              <a href="mailto:ebtiming@gmail.com">ebtiming@gmail.com</a>
-            </div>
-          </li>
-          <li class="eb-contact-row">
-            <span class="eb-icon-bubble">📍</span>
-            <div>
-              <span class="label">Ubicación</span>
-              <span>Santo Domingo, República Dominicana</span>
-            </div>
-          </li>
-          <li class="eb-contact-row">
-            <span class="eb-icon-bubble">🕒</span>
-            <div>
-              <span class="label">Horario de Atención</span>
-              <span>Lun - Vie: 9:00 AM - 6:00 PM</span>
-            </div>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Col 3: Acciones y Servicios -->
-      <div class="eb-actions-col">
-        <div class="eb-section-title">Servicios EB Timing</div>
-        <a href="https://www.ebtiming.com/contacto" target="_blank" rel="noopener" class="eb-btn-cta">
-          Cotizar Cronometraje ↗
-        </a>
-        <a href="https://www.ebtiming.com" target="_blank" rel="noopener" class="eb-btn-outline">
-          🌐 Portal ebtiming.com ↗
-        </a>
-        <a href="https://www.ebtiming.com/servicios" target="_blank" rel="noopener" class="eb-btn-outline">
-          ⏱ Chips RFID & Servicios ↗
-        </a>
-      </div>
-    </div>
-
-    <!-- Barra Inferior -->
-    <div class="eb-footer-bottom">
-      <div>
-        © 2026 <strong>EB TIMING</strong> · Todos los derechos reservados · Cronometrador Oficial de <strong>Enduro Evolution 2026</strong>
-      </div>
-      <div>
-        <a href="admin/" title="Acceso al Panel de Control de Carrera">Acceso Dirección de Carrera 🔒</a>
-      </div>
-    </div>
-  </footer>
-</main>
-
-<!-- Floating Viewer Controls -->
-<div class="controls">
-  <button class="btn icon-only" id="fullscreenBtn" title="Pantalla completa" aria-label="Pantalla completa">⛶</button>
-  <a href="admin/" class="btn subtle" title="Panel administrativo">🔒 ADMIN</a>
-</div>
-
-<!-- Event Flash Banner -->
-<div class="event-flash" id="eventFlash" role="alert" aria-live="polite">
-  <small id="eventFlashKicker">RESULTADO REGISTRADO</small>
-  <strong id="eventFlashText">Etapa actualizada</strong>
-</div>
-
-<!-- Winner Celebration Overlay -->
-<div class="winner-overlay" id="winnerOverlay" aria-hidden="true" role="dialog">
-  <div class="particles" id="particles"></div>
-  <div class="winner-card">
-    <div class="winner-content">
-      <div class="trophy">🏆</div>
-      <div class="winner-kicker">GANADOR OFICIAL · MATCH UP EN LLAMAS 2026</div>
-      <div class="winner-name" id="winnerName">—</div>
-      <div class="winner-nick" id="winnerNick">—</div>
-      <div class="winner-time" id="winnerTime">--:--.---</div>
-      <div class="winner-delta" id="winnerDelta">—</div>
-      <div style="margin-top:14px; font-size:11px; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:8px;">
-        <span>Cronometraje oficial certificado por</span>
-        <a href="https://ebtiming.com" target="_blank" rel="noopener" style="color:var(--fire2); text-decoration:none; font-weight:900;">ebtiming.com</a>
-      </div>
-      <div class="actions" style="justify-content:center; margin-top:24px">
-        <button class="btn primary" id="closeWinnerBtn">VER TIEMPOS DETALLADOS</button>
+  <!-- Winner Celebration Overlay -->
+  <div class="winner-overlay" id="winnerOverlay" aria-hidden="true" role="dialog">
+    <div class="particles" id="particles"></div>
+    <div class="winner-card">
+      <div class="winner-content">
+        <div class="trophy">🏆</div>
+        <div class="winner-kicker">GANADOR OFICIAL · MATCH UP EN LLAMAS 2026</div>
+        <div class="winner-name" id="winnerName">—</div>
+        <div class="winner-nick" id="winnerNick">—</div>
+        <div class="winner-time" id="winnerTime">--:--.---</div>
+        <div class="winner-delta" id="winnerDelta">—</div>
+        <div
+          style="margin-top:14px; font-size:11px; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span>Cronometraje oficial certificado por</span>
+          <a href="https://ebtiming.com" target="_blank" rel="noopener"
+            style="color:var(--fire2); text-decoration:none; font-weight:900;">ebtiming.com</a>
+        </div>
+        <div class="actions" style="justify-content:center; margin-top:24px">
+          <button class="btn primary" id="closeWinnerBtn">VER TIEMPOS DETALLADOS</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Toast -->
-<div class="toast" id="toast">Live Timing actualizado</div>
+  <!-- Toast -->
+  <div class="toast" id="toast">Live Timing actualizado</div>
 
-<!-- Scripts -->
-<script src="assets/js/config.js?v=20260909_2"></script>
-<script src="assets/js/supabase-service.js?v=20260909_2"></script>
-<script>
-(function() {
-  'use strict';
+  <!-- Scripts -->
+  <script src="assets/js/config.js?v=20260909_2"></script>
+  <script src="assets/js/supabase-service.js?v=20260909_2"></script>
+  <script>
+    (function () {
+      'use strict';
 
-  const { fmt, dFmt } = window.EnduroTime;
-  const service = window.EnduroService;
+      const { fmt, dFmt } = window.EnduroTime;
+      const service = window.EnduroService;
 
-  let lastStageTimes = [null, null, null, null];
-  let winnerShown = false;
-  let flashTimer = null;
+      let lastStageTimes = [null, null, null, null];
+      let winnerShown = false;
+      let flashTimer = null;
 
-  // Actualizar indicador de conexión Realtime
-  service.onStatusChange((status) => {
-    const badge = document.getElementById('connectionBadge');
-    const text = document.getElementById('connectionText');
-    if (!badge || !text) return;
+      // Actualizar indicador de conexión Realtime
+      service.onStatusChange((status) => {
+        const badge = document.getElementById('connectionBadge');
+        const text = document.getElementById('connectionText');
+        if (!badge || !text) return;
 
-    badge.className = 'connection-pill ' + (status === 'connected' ? 'connected' : 'offline');
-    if (status === 'connected') {
-      text.textContent = service.isNeon ? 'EN VIVO · NEON POSTGRES' : 'REALTIME EN VIVO';
-    } else if (status === 'connecting') {
-      text.textContent = 'CONECTANDO...';
-    } else {
-      text.textContent = 'MODO LOCAL';
-    }
-  });
+        badge.className = 'connection-pill ' + (status === 'connected' ? 'connected' : 'offline');
+        if (status === 'connected') {
+          text.textContent = service.isNeon ? 'EN VIVO · NEON POSTGRES' : 'REALTIME EN VIVO';
+        } else if (status === 'connecting') {
+          text.textContent = 'CONECTANDO...';
+        } else {
+          text.textContent = 'MODO LOCAL';
+        }
+      });
 
-  // Suscribirse a cambios en los datos
-  service.onUpdate((state) => {
-    render(state);
-  });
+      // Suscribirse a cambios en los datos
+      service.onUpdate((state) => {
+        render(state);
+      });
 
-  // Sincronización activa de respaldo cada 1 segundo
-  setInterval(() => {
-    service.refresh();
-  }, 1000);
+      // Sincronización activa de respaldo cada 1 segundo
+      setInterval(() => {
+        service.refresh();
+      }, 1000);
 
-  function flash(kicker, text) {
-    const flashElem = document.getElementById('eventFlash');
-    const kickerElem = document.getElementById('eventFlashKicker');
-    const textElem = document.getElementById('eventFlashText');
-    if (!flashElem || !kickerElem || !textElem) return;
+      function flash(kicker, text) {
+        const flashElem = document.getElementById('eventFlash');
+        const kickerElem = document.getElementById('eventFlashKicker');
+        const textElem = document.getElementById('eventFlashText');
+        if (!flashElem || !kickerElem || !textElem) return;
 
-    kickerElem.textContent = kicker;
-    textElem.textContent = text;
-    flashElem.classList.add('show');
-    clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => flashElem.classList.remove('show'), 2800);
-  }
-
-  function launchConfetti() {
-    const particlesContainer = document.getElementById('particles');
-    if (!particlesContainer) return;
-    particlesContainer.innerHTML = '';
-    for (let i = 0; i < 56; i++) {
-      const p = document.createElement('i');
-      p.className = 'particle';
-      p.style.left = (Math.random() * 100) + '%';
-      p.style.top = (-10 - Math.random() * 30) + 'vh';
-      p.style.animationDuration = (2.6 + Math.random() * 3.2) + 's';
-      p.style.animationDelay = (Math.random() * 1.2) + 's';
-      if (i % 3 === 0) p.style.background = 'var(--gold)';
-      if (i % 5 === 0) p.style.background = '#ffffff';
-      particlesContainer.appendChild(p);
-    }
-  }
-
-  function showWinner(totals, leader, participants) {
-    if (winnerShown) return;
-    if (totals.completed < 4 && totals.isFinished !== true) return;
-    if (!leader.winner || leader.winner === 'tie') return;
-
-    const pFabio = participants[0];
-    const pLuis = participants[1];
-    const isFabio = leader.winner === 'fabio';
-    const champ = isFabio ? pFabio : pLuis;
-    const champTime = isFabio ? totals.fabio : totals.luis;
-
-    const nameElem = document.getElementById('winnerName');
-    const nickElem = document.getElementById('winnerNick');
-    const timeElem = document.getElementById('winnerTime');
-    const deltaElem = document.getElementById('winnerDelta');
-    const overlay = document.getElementById('winnerOverlay');
-
-    if (nameElem) nameElem.textContent = champ.nombre.toUpperCase();
-    if (nickElem) nickElem.textContent = `${champ.apodo} ${champ.apellido}`.toUpperCase();
-    if (timeElem) timeElem.textContent = fmt(champTime);
-    if (deltaElem) deltaElem.textContent = `VENTAJA FINAL · +${dFmt(leader.deltaMs)}`;
-
-    launchConfetti();
-    if (overlay) {
-      overlay.classList.add('open');
-      overlay.setAttribute('aria-hidden', 'false');
-    }
-    winnerShown = true;
-  }
-
-  function render(state) {
-    if (!state) return;
-    const { matchup, stages, totals, scores, leader, participants } = state;
-
-    // 1. Estado de carrera (PRE-RACE, EN CURSO, FINALIZADA)
-    const statusBadge = document.getElementById('raceStatusBadge');
-    const liveText = document.getElementById('raceStateText');
-    const statusCls = (matchup.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
-    
-    if (statusBadge) {
-      statusBadge.className = `status-pill ${statusCls}`;
-      statusBadge.textContent = matchup.estado;
-    }
-
-    if (liveText) {
-      if (matchup.estado === 'FINALIZADA' || totals.isFinished) {
-        liveText.textContent = 'RESULTADO FINAL';
-      } else if (matchup.estado === 'EN CURSO') {
-        liveText.textContent = 'EN CURSO · LIVE';
-      } else {
-        liveText.textContent = 'PRE-RACE';
+        kickerElem.textContent = kicker;
+        textElem.textContent = text;
+        flashElem.classList.add('show');
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(() => flashElem.classList.remove('show'), 2800);
       }
-    }
 
-    // 2. Score Ribbon
-    const fabioScore = document.getElementById('fabioScore');
-    const luisScore = document.getElementById('luisScore');
-    const ribbonStage = document.getElementById('ribbonStage');
-    const ribbonValue = document.getElementById('ribbonValue');
-
-    if (fabioScore) fabioScore.textContent = scores.fabio;
-    if (luisScore) luisScore.textContent = scores.luis;
-
-    const isFinal = totals.completed === 4 || matchup.estado === 'FINALIZADA';
-
-    if (ribbonStage) {
-      ribbonStage.textContent = isFinal ? 'RESULTADO DEFINITIVO' : totals.completed === 0 ? 'PRE-RACE' : `TRAS ETAPA ${totals.completed}`;
-    }
-
-    if (ribbonValue) {
-      if (isFinal) {
-        ribbonValue.textContent = leader.winner === 'tie' ? 'EMPATE FINAL' : `${leader.winner === 'fabio' ? 'FABIO' : 'LUIS'} GANA EL MATCHUP`;
-      } else if (totals.completed === 0) {
-        ribbonValue.textContent = 'Esperando Etapa 1';
-      } else if (leader.winner === 'tie') {
-        ribbonValue.textContent = 'Empate en tiempo acumulado';
-      } else {
-        const leadRider = leader.winner === 'fabio' ? 'Fabio' : 'Luis';
-        ribbonValue.textContent = `${leadRider} lidera por ${dFmt(leader.deltaMs)}`;
+      function launchConfetti() {
+        const particlesContainer = document.getElementById('particles');
+        if (!particlesContainer) return;
+        particlesContainer.innerHTML = '';
+        for (let i = 0; i < 56; i++) {
+          const p = document.createElement('i');
+          p.className = 'particle';
+          p.style.left = (Math.random() * 100) + '%';
+          p.style.top = (-10 - Math.random() * 30) + 'vh';
+          p.style.animationDuration = (2.6 + Math.random() * 3.2) + 's';
+          p.style.animationDelay = (Math.random() * 1.2) + 's';
+          if (i % 3 === 0) p.style.background = 'var(--gold)';
+          if (i % 5 === 0) p.style.background = '#ffffff';
+          particlesContainer.appendChild(p);
+        }
       }
-    }
 
-    // 3. Hero Section (Totales, Leader glow y tags)
-    const fabioTotal = document.getElementById('fabioTotal');
-    const luisTotal = document.getElementById('luisTotal');
-    const fabioSumTotal = document.getElementById('fabioSumTotal');
-    const luisSumTotal = document.getElementById('luisSumTotal');
+      function showWinner(totals, leader, participants) {
+        if (winnerShown) return;
+        if (totals.completed < 4 && totals.isFinished !== true) return;
+        if (!leader.winner || leader.winner === 'tie') return;
 
-    if (fabioTotal) fabioTotal.textContent = fmt(totals.fabio);
-    if (luisTotal) luisTotal.textContent = fmt(totals.luis);
-    if (fabioSumTotal) fabioSumTotal.textContent = fmt(totals.fabio);
-    if (luisSumTotal) luisSumTotal.textContent = fmt(totals.luis);
+        const pFabio = participants[0];
+        const pLuis = participants[1];
+        const isFabio = leader.winner === 'fabio';
+        const champ = isFabio ? pFabio : pLuis;
+        const champTime = isFabio ? totals.fabio : totals.luis;
 
-    const fabioCard = document.getElementById('fabioCard');
-    const luisCard = document.getElementById('luisCard');
-    if (fabioCard) fabioCard.classList.toggle('leading', leader.winner === 'fabio');
-    if (luisCard) luisCard.classList.toggle('leading', leader.winner === 'luis');
+        const nameElem = document.getElementById('winnerName');
+        const nickElem = document.getElementById('winnerNick');
+        const timeElem = document.getElementById('winnerTime');
+        const deltaElem = document.getElementById('winnerDelta');
+        const overlay = document.getElementById('winnerOverlay');
 
-    const fabioTag = document.getElementById('fabioTag');
-    const luisTag = document.getElementById('luisTag');
-    if (fabioTag) fabioTag.innerHTML = leader.winner === 'fabio' ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
-    if (luisTag) luisTag.innerHTML = leader.winner === 'luis' ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
+        if (nameElem) nameElem.textContent = champ.nombre.toUpperCase();
+        if (nickElem) nickElem.textContent = `${champ.apodo} ${champ.apellido}`.toUpperCase();
+        if (timeElem) timeElem.textContent = fmt(champTime);
+        if (deltaElem) deltaElem.textContent = `VENTAJA FINAL · +${dFmt(leader.deltaMs)}`;
 
-    // Versus Leadbox y barra de 4 puntos
-    const leadBox = document.getElementById('leadBox');
-    if (leadBox) {
-      if (totals.completed === 0) {
-        leadBox.innerHTML = 'Esperando tiempos...';
-      } else if (leader.winner === 'tie') {
-        leadBox.innerHTML = '<strong>EMPATE TOTAL</strong>';
-      } else {
-        leadBox.innerHTML = `<span>${isFinal ? 'RESULTADO FINAL' : 'LÍDER ACTUAL'}</span><strong>${leader.text}</strong><span>por ${dFmt(leader.deltaMs)}</span>`;
+        launchConfetti();
+        if (overlay) {
+          overlay.classList.add('open');
+          overlay.setAttribute('aria-hidden', 'false');
+        }
+        winnerShown = true;
       }
-    }
 
-    for (let i = 1; i <= 4; i++) {
-      const dot = document.getElementById(`dot${i}`);
-      if (dot) {
-        dot.classList.toggle('done', i <= totals.completed);
-      }
-    }
+      function render(state) {
+        if (!state) return;
+        const { matchup, stages, totals, scores, leader, participants } = state;
 
-    // 4. Tarjetas de Etapas
-    const stagesContainer = document.getElementById('stagesContainer');
-    if (stagesContainer) {
-      stagesContainer.innerHTML = stages.map((s, idx) => {
-        const done = s.completed;
-        let deltaText = 'Pendiente de resultados';
-        let cls = '';
-        let chip = '';
+        // 1. Estado de carrera (PRE-RACE, EN CURSO, FINALIZADA)
+        const statusBadge = document.getElementById('raceStatusBadge');
+        const liveText = document.getElementById('raceStateText');
+        const statusCls = (matchup.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
 
-        if (done) {
-          if (s.winner === 'tie') {
-            deltaText = 'Etapa empatada';
-            chip = '<span class="winner-chip">Empate</span>';
-          } else if (s.winner === 'fabio') {
-            deltaText = `<strong>Fabio gana</strong> por ${dFmt(s.deltaMs)}`;
-            cls = 'won-fabio';
-            chip = '<span class="winner-chip">Fabio</span>';
+        if (statusBadge) {
+          statusBadge.className = `status-pill ${statusCls}`;
+          statusBadge.textContent = matchup.estado;
+        }
+
+        if (liveText) {
+          if (matchup.estado === 'FINALIZADA' || totals.isFinished) {
+            liveText.textContent = 'RESULTADO FINAL';
+          } else if (matchup.estado === 'EN CURSO') {
+            liveText.textContent = 'EN CURSO · LIVE';
           } else {
-            deltaText = `<strong>Luis gana</strong> por ${dFmt(s.deltaMs)}`;
-            cls = 'won-luis';
-            chip = '<span class="winner-chip">Luis</span>';
+            liveText.textContent = 'PRE-RACE';
           }
         }
 
-        // Detectar si cambió este tiempo
-        const previousTime = lastStageTimes[idx];
-        const hasChanged = previousTime !== null && (previousTime.f !== s.fabioMs || previousTime.l !== s.luisMs);
+        // 2. Score Ribbon
+        const fabioScore = document.getElementById('fabioScore');
+        const luisScore = document.getElementById('luisScore');
+        const ribbonStage = document.getElementById('ribbonStage');
+        const ribbonValue = document.getElementById('ribbonValue');
 
-        return `
+        if (fabioScore) fabioScore.textContent = scores.fabio;
+        if (luisScore) luisScore.textContent = scores.luis;
+
+        const isFinal = totals.completed === 4 || matchup.estado === 'FINALIZADA';
+
+        if (ribbonStage) {
+          ribbonStage.textContent = isFinal ? 'RESULTADO DEFINITIVO' : totals.completed === 0 ? 'PRE-RACE' : `TRAS ETAPA ${totals.completed}`;
+        }
+
+        if (ribbonValue) {
+          if (isFinal) {
+            ribbonValue.textContent = leader.winner === 'tie' ? 'EMPATE FINAL' : `${leader.winner === 'fabio' ? 'FABIO' : 'LUIS'} GANA EL MATCHUP`;
+          } else if (totals.completed === 0) {
+            ribbonValue.textContent = 'Esperando Etapa 1';
+          } else if (leader.winner === 'tie') {
+            ribbonValue.textContent = 'Empate en tiempo acumulado';
+          } else {
+            const leadRider = leader.winner === 'fabio' ? 'Fabio' : 'Luis';
+            ribbonValue.textContent = `${leadRider} lidera por ${dFmt(leader.deltaMs)}`;
+          }
+        }
+
+        // 3. Hero Section (Totales, Leader glow y tags)
+        const fabioTotal = document.getElementById('fabioTotal');
+        const luisTotal = document.getElementById('luisTotal');
+        const fabioSumTotal = document.getElementById('fabioSumTotal');
+        const luisSumTotal = document.getElementById('luisSumTotal');
+
+        if (fabioTotal) fabioTotal.textContent = fmt(totals.fabio);
+        if (luisTotal) luisTotal.textContent = fmt(totals.luis);
+        if (fabioSumTotal) fabioSumTotal.textContent = fmt(totals.fabio);
+        if (luisSumTotal) luisSumTotal.textContent = fmt(totals.luis);
+
+        const fabioCard = document.getElementById('fabioCard');
+        const luisCard = document.getElementById('luisCard');
+        if (fabioCard) fabioCard.classList.toggle('leading', leader.winner === 'fabio');
+        if (luisCard) luisCard.classList.toggle('leading', leader.winner === 'luis');
+
+        const fabioTag = document.getElementById('fabioTag');
+        const luisTag = document.getElementById('luisTag');
+        if (fabioTag) fabioTag.innerHTML = leader.winner === 'fabio' ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
+        if (luisTag) luisTag.innerHTML = leader.winner === 'luis' ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
+
+        // Versus Leadbox y barra de 4 puntos
+        const leadBox = document.getElementById('leadBox');
+        if (leadBox) {
+          if (totals.completed === 0) {
+            leadBox.innerHTML = 'Esperando tiempos...';
+          } else if (leader.winner === 'tie') {
+            leadBox.innerHTML = '<strong>EMPATE TOTAL</strong>';
+          } else {
+            leadBox.innerHTML = `<span>${isFinal ? 'RESULTADO FINAL' : 'LÍDER ACTUAL'}</span><strong>${leader.text}</strong><span>por ${dFmt(leader.deltaMs)}</span>`;
+          }
+        }
+
+        for (let i = 1; i <= 4; i++) {
+          const dot = document.getElementById(`dot${i}`);
+          if (dot) {
+            dot.classList.toggle('done', i <= totals.completed);
+          }
+        }
+
+        // 4. Tarjetas de Etapas
+        const stagesContainer = document.getElementById('stagesContainer');
+        if (stagesContainer) {
+          stagesContainer.innerHTML = stages.map((s, idx) => {
+            const done = s.completed;
+            let deltaText = 'Pendiente de resultados';
+            let cls = '';
+            let chip = '';
+
+            if (done) {
+              if (s.winner === 'tie') {
+                deltaText = 'Etapa empatada';
+                chip = '<span class="winner-chip">Empate</span>';
+              } else if (s.winner === 'fabio') {
+                deltaText = `<strong>Fabio gana</strong> por ${dFmt(s.deltaMs)}`;
+                cls = 'won-fabio';
+                chip = '<span class="winner-chip">Fabio</span>';
+              } else {
+                deltaText = `<strong>Luis gana</strong> por ${dFmt(s.deltaMs)}`;
+                cls = 'won-luis';
+                chip = '<span class="winner-chip">Luis</span>';
+              }
+            }
+
+            // Detectar si cambió este tiempo
+            const previousTime = lastStageTimes[idx];
+            const hasChanged = previousTime !== null && (previousTime.f !== s.fabioMs || previousTime.l !== s.luisMs);
+
+            return `
           <article class="stage ${cls} ${hasChanged ? 'flash' : ''}" id="stageCard${s.numero}">
             <div class="stage-index">${s.numero}</div>
             <div class="stage-top">
@@ -491,78 +482,79 @@
             </div>
           </article>
         `;
-      }).join('');
-    }
-
-    // Guardar referencia para detectar cambios en siguiente ciclo
-    lastStageTimes = stages.map(s => ({ f: s.fabioMs, l: s.luisMs }));
-
-    // 5. Barra de Batalla y Marcador
-    const completedStagesText = document.getElementById('completedStagesText');
-    if (completedStagesText) completedStagesText.textContent = `${totals.completed} / 4 etapas completadas`;
-
-    const marker = document.getElementById('battleMarker');
-    if (marker) {
-      let pos = 50;
-      if (totals.fabio !== null && totals.luis !== null) {
-        const diff = totals.luis - totals.fabio; // positivo = Fabio lidera
-        const normalized = Math.max(-1, Math.min(1, diff / 10000));
-        pos = 50 - (normalized * 40);
-      }
-      marker.style.left = pos + '%';
-    }
-
-    const sumLeadText = document.getElementById('sumLeadText');
-    if (sumLeadText) {
-      if (totals.completed === 0) {
-        sumLeadText.textContent = 'Sin diferencia todavía';
-      } else if (leader.winner === 'tie') {
-        sumLeadText.textContent = 'Empate total acumulado';
-      } else {
-        sumLeadText.textContent = `${leader.text} POR ${dFmt(leader.deltaMs)}`;
-      }
-    }
-
-    const updatedAtText = document.getElementById('updatedAtText');
-    if (updatedAtText) {
-      const now = new Date();
-      updatedAtText.textContent = 'En vivo · ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
-    // 6. Activar modal del ganador automáticamente si finalizó
-    if (isFinal && !winnerShown && totals.completed === 4) {
-      setTimeout(() => {
-        showWinner(totals, leader, participants);
-      }, 900);
-    }
-  }
-
-  // Controles
-  const fullscreenBtn = document.getElementById('fullscreenBtn');
-  if (fullscreenBtn) {
-    fullscreenBtn.onclick = async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
+          }).join('');
         }
-      } catch (e) {
-        console.warn('Fullscreen request failed:', e);
+
+        // Guardar referencia para detectar cambios en siguiente ciclo
+        lastStageTimes = stages.map(s => ({ f: s.fabioMs, l: s.luisMs }));
+
+        // 5. Barra de Batalla y Marcador
+        const completedStagesText = document.getElementById('completedStagesText');
+        if (completedStagesText) completedStagesText.textContent = `${totals.completed} / 4 etapas completadas`;
+
+        const marker = document.getElementById('battleMarker');
+        if (marker) {
+          let pos = 50;
+          if (totals.fabio !== null && totals.luis !== null) {
+            const diff = totals.luis - totals.fabio; // positivo = Fabio lidera
+            const normalized = Math.max(-1, Math.min(1, diff / 10000));
+            pos = 50 - (normalized * 40);
+          }
+          marker.style.left = pos + '%';
+        }
+
+        const sumLeadText = document.getElementById('sumLeadText');
+        if (sumLeadText) {
+          if (totals.completed === 0) {
+            sumLeadText.textContent = 'Sin diferencia todavía';
+          } else if (leader.winner === 'tie') {
+            sumLeadText.textContent = 'Empate total acumulado';
+          } else {
+            sumLeadText.textContent = `${leader.text} POR ${dFmt(leader.deltaMs)}`;
+          }
+        }
+
+        const updatedAtText = document.getElementById('updatedAtText');
+        if (updatedAtText) {
+          const now = new Date();
+          updatedAtText.textContent = 'En vivo · ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        // 6. Activar modal del ganador automáticamente si finalizó
+        if (isFinal && !winnerShown && totals.completed === 4) {
+          setTimeout(() => {
+            showWinner(totals, leader, participants);
+          }, 900);
+        }
       }
-    };
-  }
 
-  const closeWinnerBtn = document.getElementById('closeWinnerBtn');
-  const winnerOverlay = document.getElementById('winnerOverlay');
-  if (closeWinnerBtn && winnerOverlay) {
-    closeWinnerBtn.onclick = () => {
-      winnerOverlay.classList.remove('open');
-      winnerOverlay.setAttribute('aria-hidden', 'true');
-    };
-  }
+      // Controles
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      if (fullscreenBtn) {
+        fullscreenBtn.onclick = async () => {
+          try {
+            if (!document.fullscreenElement) {
+              await document.documentElement.requestFullscreen();
+            } else {
+              await document.exitFullscreen();
+            }
+          } catch (e) {
+            console.warn('Fullscreen request failed:', e);
+          }
+        };
+      }
 
-})();
-</script>
+      const closeWinnerBtn = document.getElementById('closeWinnerBtn');
+      const winnerOverlay = document.getElementById('winnerOverlay');
+      if (closeWinnerBtn && winnerOverlay) {
+        closeWinnerBtn.onclick = () => {
+          winnerOverlay.classList.remove('open');
+          winnerOverlay.setAttribute('aria-hidden', 'true');
+        };
+      }
+
+    })();
+  </script>
 </body>
+
 </html>
