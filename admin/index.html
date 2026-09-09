@@ -26,7 +26,7 @@
     <form id="authForm" onsubmit="return false;">
       <div class="field" style="margin-bottom:14px;">
         <label for="pinInput">PIN DE SEGURIDAD</label>
-        <input type="password" id="pinInput" placeholder="Código PIN" autocomplete="current-password" autofocus style="text-align:center; font-size:20px; letter-spacing:0.2em;"/>
+        <input type="password" id="pinInput" placeholder="Código PIN (por defecto: enduro2026)" autocomplete="current-password" autofocus style="text-align:center; font-size:18px; letter-spacing:0.1em;"/>
       </div>
       <div id="authError" style="color:var(--danger); font-size:11px; margin-bottom:12px; display:none;">PIN incorrecto. Intenta nuevamente.</div>
       <button type="submit" class="btn primary" id="loginBtn" style="width:100%;">DESBLOQUEAR PANEL</button>
@@ -338,15 +338,18 @@
     }
   }
 
-  document.getElementById('authForm').addEventListener('submit', () => {
+  document.getElementById('authForm').addEventListener('submit', (e) => {
+    if (e) e.preventDefault();
     const pin = document.getElementById('pinInput').value.trim();
     const config = window.EnduroConfig.get();
     const validPin = config.adminPin || window.EnduroConfig.DEFAULT_PIN;
 
-    if (pin === validPin) {
+    if (pin.toLowerCase() === validPin.toLowerCase()) {
       sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+      localStorage.setItem(AUTH_SESSION_KEY, 'true');
       document.getElementById('authError').style.display = 'none';
       checkAuth();
+      service.refresh();
       showToast('Acceso concedido');
     } else {
       document.getElementById('authError').style.display = 'block';
@@ -652,7 +655,8 @@
     if (e.target === settingsModal) settingsModal.classList.remove('open');
   });
 
-  document.getElementById('settingsForm').addEventListener('submit', async () => {
+  document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    if (e) e.preventDefault();
     const url = document.getElementById('cfgSupabaseUrl').value.trim();
     const key = document.getElementById('cfgSupabaseKey').value.trim();
     const pin = document.getElementById('cfgAdminPin').value.trim() || 'enduro2026';
@@ -667,6 +671,13 @@
     showToast('Configuración guardada. Reconectando...');
     await service.init();
   });
+
+  // Sincronización periódica activa cada 2 segundos para reflejar cambios externos
+  setInterval(() => {
+    if (isAuthenticated()) {
+      service.refresh();
+    }
+  }, 2000);
 
   // Inicialización
   checkAuth();

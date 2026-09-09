@@ -10,6 +10,29 @@
   const LOCAL_DB_KEY = 'enduro_matchup_local_db_v2';
 
   const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(BROADCAST_CHANNEL_NAME) : null;
+  const REMOTE_API_ORIGIN = 'https://gata-vs-polini-portal.vercel.app';
+
+  // Fetch inteligente con fallback automático a la API productiva en Vercel (Neon Postgres)
+  async function apiFetch(path, options = {}) {
+    const isVercel = window.location.hostname.endsWith('vercel.app');
+    if (isVercel) {
+      return await fetch(path, options);
+    }
+    // Si estamos en localhost o entorno local:
+    try {
+      const localResp = await fetch(path, options);
+      if (localResp.ok) return localResp;
+    } catch (e) {
+      // Ignorar fallo de red local
+    }
+    // Fallback directo a la API en Vercel conectada a Neon Postgres
+    try {
+      return await fetch(REMOTE_API_ORIGIN + path, options);
+    } catch (err) {
+      console.warn('Fallback a API remota de Neon falló:', err);
+      return null;
+    }
+  }
 
   // Tiempos formateados y parsing flexible en milisegundos
   function parseTime(val) {
@@ -103,6 +126,19 @@
     }
 
     async init() {
+      this.notifyStatus('connecting');
+
+      // 1. Prioridad Máxima: Neon Serverless Postgres mediante API Vercel
+      try {
+        await this.refresh();
+        if (this.isNeon && this.isOnline) {
+          return;
+        }
+      } catch (e) {
+        console.warn('Neon API initial check failed:', e);
+      }
+
+      // 2. Supabase directo si hay credenciales configuradas
       const config = window.EnduroConfig ? window.EnduroConfig.get() : {};
       const hasCredentials = config.supabaseUrl && config.supabaseAnonKey &&
         !config.supabaseUrl.includes('TU_SUPABASE') &&
@@ -127,9 +163,9 @@
         }
       }
 
-      // Modo local
+      // 3. Modo local de respaldo
       this.isOnline = false;
-      this.notifyStatus(hasCredentials ? 'connecting' : 'offline_mode');
+      this.notifyStatus('offline_mode');
       this.setupLocalSync();
       await this.refresh();
     }
@@ -290,28 +326,26 @@
     }
 
     async refresh() {
-      // 1. Prioridad: Endpoints Serverless de Neon Postgres en Vercel
-      if (window.location.protocol.startsWith('http')) {
-        try {
-          const resp = await fetch('/api/state', { cache: 'no-store' });
-          if (resp.ok) {
-            const json = await resp.json();
-            if (json.ok && json.data) {
-              this.isNeon = true;
-              this.isOnline = true;
-              this.notifyStatus('connected');
-              this.cachedState = {
-                ...json.data,
-                isOnline: true,
-                connectionStatus: 'connected'
-              };
-              this.triggerUpdate();
-              return this.cachedState;
-            }
+      // 1. Prioridad: Endpoints Serverless de Neon Postgres
+      try {
+        const resp = await apiFetch('/api/state', { cache: 'no-store' });
+        if (resp && resp.ok) {
+          const json = await resp.json();
+          if (json.ok && json.data) {
+            this.isNeon = true;
+            this.isOnline = true;
+            this.notifyStatus('connected');
+            this.cachedState = {
+              ...json.data,
+              isOnline: true,
+              connectionStatus: 'connected'
+            };
+            this.triggerUpdate();
+            return this.cachedState;
           }
-        } catch (e) {
-          // No está en Vercel con API o hubo error de red, continuar con fallback
         }
+      } catch (e) {
+        // Continuar con fallback
       }
 
       // 2. Supabase directo
@@ -389,21 +423,21 @@
     // =========================================================================
 
     async saveStageTimes(stageNumero, fabioMs, luisMs) {
-      // Prioridad Neon Serverless
-      if (this.isNeon) {
-        try {
-          const resp = await fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stageNumero, fabioMs, luisMs })
-          });
-          if (resp.ok) {
-            await this.refresh();
-            return true;
-          }
-        } catch (e) {
-          console.error('Error saving to Neon API:', e);
+      // Prioridad Neon Serverless vía API
+      try {
+        const resp = await apiFetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stageNumero, fabioMs, luisMs })
+        });
+        if (resp && resp.ok) {
+          this.isNeon = true;
+          this.isOnline = true;
+          await this.refresh();
+          return true;
         }
+      } catch (e) {
+        console.error('Error saving to Neon API:', e);
       }
 
       if (this.isOnline && this.supabase && this.cachedState) {
@@ -473,20 +507,20 @@
     }
 
     async clearStageTimes(stageNumero) {
-      if (this.isNeon) {
-        try {
-          const resp = await fetch('/api/clear', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stageNumero })
-          });
-          if (resp.ok) {
-            await this.refresh();
-            return true;
-          }
-        } catch (e) {
-          console.error('Error clearing on Neon API:', e);
+      try {
+        const resp = await apiFetch('/api/clear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stageNumero })
+        });
+        if (resp && resp.ok) {
+          this.isNeon = true;
+          this.isOnline = true;
+          await this.refresh();
+          return true;
         }
+      } catch (e) {
+        console.error('Error clearing on Neon API:', e);
       }
 
       if (this.isOnline && this.supabase && this.cachedState) {
@@ -528,20 +562,20 @@
     async updateRaceStatus(newStatus) {
       if (!['PRE-RACE', 'EN CURSO', 'FINALIZADA'].includes(newStatus)) return false;
 
-      if (this.isNeon) {
-        try {
-          const resp = await fetch('/api/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
-          });
-          if (resp.ok) {
-            await this.refresh();
-            return true;
-          }
-        } catch (e) {
-          console.error('Error updating status on Neon API:', e);
+      try {
+        const resp = await apiFetch('/api/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (resp && resp.ok) {
+          this.isNeon = true;
+          this.isOnline = true;
+          await this.refresh();
+          return true;
         }
+      } catch (e) {
+        console.error('Error updating status on Neon API:', e);
       }
 
       if (this.isOnline && this.supabase && this.cachedState) {
@@ -567,19 +601,19 @@
     }
 
     async resetMatchup() {
-      if (this.isNeon) {
-        try {
-          const resp = await fetch('/api/reset', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          if (resp.ok) {
-            await this.refresh();
-            return true;
-          }
-        } catch (e) {
-          console.error('Error resetting on Neon API:', e);
+      try {
+        const resp = await apiFetch('/api/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (resp && resp.ok) {
+          this.isNeon = true;
+          this.isOnline = true;
+          await this.refresh();
+          return true;
         }
+      } catch (e) {
+        console.error('Error resetting on Neon API:', e);
       }
 
       if (this.isOnline && this.supabase && this.cachedState) {
