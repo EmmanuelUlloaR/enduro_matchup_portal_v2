@@ -20,6 +20,10 @@
       <h1>ENDURO <span>EVOLUTION</span> 2026</h1>
     </div>
     <div class="header-badges">
+      <a href="https://ebtiming.com" target="_blank" rel="noopener" class="ebtiming-badge" title="Cronometrado por ebtiming.com">
+        <img src="assets/ebtiming-logo.png" alt="EB Timing">
+        <span>ebtiming.com</span>
+      </a>
       <span class="status-pill pre-race" id="raceStatusBadge">PRE-RACE</span>
       <div class="live-pill" id="liveIndicator"><i></i><span id="raceStateText">LIVE TIMING</span></div>
       <div class="connection-pill" id="connectionBadge" title="Estado de sincronización en tiempo real">
@@ -133,9 +137,21 @@
     </div>
   </section>
 
+  <!-- EB Timing Official Timing Card -->
+  <a href="https://ebtiming.com" target="_blank" rel="noopener" class="ebtiming-footer-card">
+    <div class="eb-logo-wrap">
+      <img src="assets/ebtiming-logo.png" alt="EB Timing Logo">
+    </div>
+    <div class="eb-info">
+      <small>CRONOMETRAJE OFICIAL DEL EVENTO</small>
+      <strong>EB TIMING · ebtiming.com</strong>
+      <span>Precisión y eficiencia, nuestra especialidad</span>
+    </div>
+  </a>
+
   <!-- Public Footer Note -->
   <footer class="note">
-    <span>Live Timing oficial para espectadores · Sincronizado en tiempo real</span>
+    <span>Live Timing oficial para espectadores · Sincronizado en tiempo real por <a href="https://ebtiming.com" target="_blank" rel="noopener">ebtiming.com</a></span>
     <span>·</span>
     <a href="admin/" title="Acceso al Panel de Control de Carrera">Acceso Dirección de Carrera 🔒</a>
   </footer>
@@ -164,7 +180,11 @@
       <div class="winner-nick" id="winnerNick">—</div>
       <div class="winner-time" id="winnerTime">--:--.---</div>
       <div class="winner-delta" id="winnerDelta">—</div>
-      <div class="actions" style="justify-content:center; margin-top:28px">
+      <div style="margin-top:14px; font-size:11px; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:8px;">
+        <span>Cronometraje oficial certificado por</span>
+        <a href="https://ebtiming.com" target="_blank" rel="noopener" style="color:var(--fire2); text-decoration:none; font-weight:900;">ebtiming.com</a>
+      </div>
+      <div class="actions" style="justify-content:center; margin-top:24px">
         <button class="btn primary" id="closeWinnerBtn">VER TIEMPOS DETALLADOS</button>
       </div>
     </div>
