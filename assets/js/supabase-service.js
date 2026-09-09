@@ -290,6 +290,31 @@
     }
 
     async refresh() {
+      // 1. Prioridad: Endpoints Serverless de Neon Postgres en Vercel
+      if (window.location.protocol.startsWith('http')) {
+        try {
+          const resp = await fetch('/api/state', { cache: 'no-store' });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json.ok && json.data) {
+              this.isNeon = true;
+              this.isOnline = true;
+              this.notifyStatus('connected');
+              this.cachedState = {
+                ...json.data,
+                isOnline: true,
+                connectionStatus: 'connected'
+              };
+              this.triggerUpdate();
+              return this.cachedState;
+            }
+          }
+        } catch (e) {
+          // No está en Vercel con API o hubo error de red, continuar con fallback
+        }
+      }
+
+      // 2. Supabase directo
       if (this.isOnline && this.supabase) {
         try {
           // 1. Obtener matchup
@@ -352,7 +377,7 @@
         }
       }
 
-      // Carga desde DB local
+      // 3. Carga desde DB local
       const local = loadLocalDb();
       this.cachedState = this.computeMetrics(local.matchup, local.participants, local.stages);
       this.triggerUpdate();
@@ -364,6 +389,23 @@
     // =========================================================================
 
     async saveStageTimes(stageNumero, fabioMs, luisMs) {
+      // Prioridad Neon Serverless
+      if (this.isNeon) {
+        try {
+          const resp = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stageNumero, fabioMs, luisMs })
+          });
+          if (resp.ok) {
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error saving to Neon API:', e);
+        }
+      }
+
       if (this.isOnline && this.supabase && this.cachedState) {
         try {
           const { matchup, participants, stages } = this.cachedState;
@@ -431,6 +473,22 @@
     }
 
     async clearStageTimes(stageNumero) {
+      if (this.isNeon) {
+        try {
+          const resp = await fetch('/api/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stageNumero })
+          });
+          if (resp.ok) {
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error clearing on Neon API:', e);
+        }
+      }
+
       if (this.isOnline && this.supabase && this.cachedState) {
         try {
           const { stages } = this.cachedState;
@@ -470,6 +528,22 @@
     async updateRaceStatus(newStatus) {
       if (!['PRE-RACE', 'EN CURSO', 'FINALIZADA'].includes(newStatus)) return false;
 
+      if (this.isNeon) {
+        try {
+          const resp = await fetch('/api/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (resp.ok) {
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error updating status on Neon API:', e);
+        }
+      }
+
       if (this.isOnline && this.supabase && this.cachedState) {
         try {
           const { matchup } = this.cachedState;
@@ -493,6 +567,21 @@
     }
 
     async resetMatchup() {
+      if (this.isNeon) {
+        try {
+          const resp = await fetch('/api/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (resp.ok) {
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error resetting on Neon API:', e);
+        }
+      }
+
       if (this.isOnline && this.supabase && this.cachedState) {
         try {
           const { matchup, stages } = this.cachedState;

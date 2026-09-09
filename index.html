@@ -269,7 +269,7 @@
 
     badge.className = 'connection-pill ' + (status === 'connected' ? 'connected' : 'offline');
     if (status === 'connected') {
-      text.textContent = 'REALTIME EN VIVO';
+      text.textContent = service.isNeon ? 'EN VIVO · NEON POSTGRES' : 'REALTIME EN VIVO';
     } else if (status === 'connecting') {
       text.textContent = 'CONECTANDO...';
     } else {

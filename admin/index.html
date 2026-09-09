@@ -386,9 +386,9 @@
 
     badge.className = 'connection-pill ' + (status === 'connected' ? 'connected' : 'offline');
     if (status === 'connected') {
-      text.textContent = 'SUPABASE REALTIME ACTIVO';
+      text.textContent = service.isNeon ? 'NEON POSTGRES EN VIVO' : 'SUPABASE REALTIME ACTIVO';
     } else if (status === 'connecting') {
-      text.textContent = 'CONECTANDO A SUPABASE...';
+      text.textContent = 'CONECTANDO...';
     } else {
       text.textContent = 'MODO LOCAL (OFFLINE)';
     }
