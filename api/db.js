@@ -61,31 +61,62 @@ async function ensureSchema(sql) {
     );
   `;
 
-  // 2. Comprobar si ya existe el matchup inicial
-  const existingMatchups = await sql`SELECT id FROM matchups LIMIT 1`;
-  if (existingMatchups.length === 0) {
+  // 2. Comprobar e inicializar Matchup 1 si no existe
+  const existingMatchups = await sql`SELECT id, nombre FROM matchups ORDER BY created_at ASC`;
+  let m1Id = existingMatchups[0]?.id;
+
+  if (!m1Id) {
     const [matchup] = await sql`
       INSERT INTO matchups (nombre, estado)
       VALUES ('Enduro Evolution 2026 — Match Up en Llamas', 'PRE-RACE')
       RETURNING id;
     `;
+    m1Id = matchup.id;
 
-    const [fabio] = await sql`
+    await sql`
       INSERT INTO participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
-      VALUES (${matchup.id}, 'Fabio', '“La Polinada”', 'SILVESTRI', 'assets/fabio.png', 1)
-      RETURNING id;
+      VALUES (${m1Id}, 'Fabio', '“La Polinada”', 'SILVESTRI', 'assets/fabio.png', 1);
     `;
 
-    const [luis] = await sql`
+    await sql`
       INSERT INTO participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
-      VALUES (${matchup.id}, 'Luis', '“Don Gata”', 'PEÑA', 'assets/luis.png', 2)
-      RETURNING id;
+      VALUES (${m1Id}, 'Luis', '“Don Gata”', 'PEÑA', 'assets/luis.png', 2);
     `;
 
     for (let i = 1; i <= 4; i++) {
       await sql`
         INSERT INTO stages (matchup_id, numero, estado)
-        VALUES (${matchup.id}, ${i}, 'PENDIENTE');
+        VALUES (${m1Id}, ${i}, 'PENDIENTE')
+        ON CONFLICT (matchup_id, numero) DO NOTHING;
+      `;
+    }
+  }
+
+  // 3. Comprobar e inicializar Matchup 2 (Ramón Reyes vs Ricky Tarrazo)
+  const allCurrentMatchups = await sql`SELECT id, nombre FROM matchups ORDER BY created_at ASC`;
+  if (allCurrentMatchups.length < 2) {
+    const [m2] = await sql`
+      INSERT INTO matchups (nombre, estado)
+      VALUES ('Matchup 2 — Ramón Reyes vs Ricky Tarrazo', 'PRE-RACE')
+      RETURNING id;
+    `;
+    const m2Id = m2.id;
+
+    await sql`
+      INSERT INTO participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
+      VALUES (${m2Id}, 'Ramón', '“El Patrón”', 'REYES', 'assets/ramon.png', 1);
+    `;
+
+    await sql`
+      INSERT INTO participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
+      VALUES (${m2Id}, 'Ricky', '“Chuquiton”', 'TARRAZO', 'assets/ricky.png', 2);
+    `;
+
+    for (let i = 1; i <= 4; i++) {
+      await sql`
+        INSERT INTO stages (matchup_id, numero, estado)
+        VALUES (${m2Id}, ${i}, 'PENDIENTE')
+        ON CONFLICT (matchup_id, numero) DO NOTHING;
       `;
     }
   }

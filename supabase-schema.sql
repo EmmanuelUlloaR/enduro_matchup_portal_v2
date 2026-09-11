@@ -106,29 +106,51 @@ declare
     v_stage3_id uuid;
     v_stage4_id uuid;
 begin
-    -- Comprobar si ya existe un matchup
+    -- Matchup 1: Fabio Silvestri vs Luis Peña
     select id into v_matchup_id from public.matchups limit 1;
 
     if v_matchup_id is null then
-        -- Insertar Matchup principal
         insert into public.matchups (nombre, estado)
         values ('Enduro Evolution 2026 — Match Up en Llamas', 'PRE-RACE')
         returning id into v_matchup_id;
 
-        -- Insertar Participante 1: Fabio Silvestri
         insert into public.participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
         values (v_matchup_id, 'Fabio', '“La Polinada”', 'SILVESTRI', 'assets/fabio.png', 1)
         returning id into v_fabio_id;
 
-        -- Insertar Participante 2: Luis Peña
         insert into public.participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
         values (v_matchup_id, 'Luis', '“Don Gata”', 'PEÑA', 'assets/luis.png', 2)
         returning id into v_luis_id;
 
-        -- Insertar las 4 Etapas
         insert into public.stages (matchup_id, numero, estado) values (v_matchup_id, 1, 'PENDIENTE') returning id into v_stage1_id;
         insert into public.stages (matchup_id, numero, estado) values (v_matchup_id, 2, 'PENDIENTE') returning id into v_stage2_id;
         insert into public.stages (matchup_id, numero, estado) values (v_matchup_id, 3, 'PENDIENTE') returning id into v_stage3_id;
         insert into public.stages (matchup_id, numero, estado) values (v_matchup_id, 4, 'PENDIENTE') returning id into v_stage4_id;
+    end if;
+
+    -- Matchup 2: Ramón Reyes vs Ricky Tarrazo
+    if (select count(*) from public.matchups) < 2 then
+        declare
+            v_m2_id uuid;
+            v_ramon_id uuid;
+            v_ricky_id uuid;
+        begin
+            insert into public.matchups (nombre, estado)
+            values ('Matchup 2 — Ramón Reyes vs Ricky Tarrazo', 'PRE-RACE')
+            returning id into v_m2_id;
+
+            insert into public.participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
+            values (v_m2_id, 'Ramón', '“El Patrón”', 'REYES', 'assets/ramon.png', 1)
+            returning id into v_ramon_id;
+
+            insert into public.participants (matchup_id, nombre, apodo, apellido, foto_url, orden)
+            values (v_m2_id, 'Ricky', '“Chuquiton”', 'TARRAZO', 'assets/ricky.png', 2)
+            returning id into v_ricky_id;
+
+            insert into public.stages (matchup_id, numero, estado) values (v_m2_id, 1, 'PENDIENTE');
+            insert into public.stages (matchup_id, numero, estado) values (v_m2_id, 2, 'PENDIENTE');
+            insert into public.stages (matchup_id, numero, estado) values (v_m2_id, 3, 'PENDIENTE');
+            insert into public.stages (matchup_id, numero, estado) values (v_m2_id, 4, 'PENDIENTE');
+        end;
     end if;
 end $$;

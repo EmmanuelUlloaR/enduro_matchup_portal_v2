@@ -17,51 +17,73 @@ module.exports = async function handler(req, res) {
   try {
     const body = getBody(req);
     const stageNumero = Number(body.stageNumero);
-    const fabioMs = body.fabioMs !== undefined && body.fabioMs !== null ? Number(body.fabioMs) : NaN;
-    const luisMs = body.luisMs !== undefined && body.luisMs !== null ? Number(body.luisMs) : NaN;
+    const matchupId = body.matchupId || null;
 
-    if (!stageNumero || isNaN(fabioMs) || isNaN(luisMs)) {
-      return res.status(400).json({ ok: false, error: 'Missing or invalid stageNumero, fabioMs, or luisMs', received: body });
+    const raw1 = body.rider1Ms !== undefined && body.rider1Ms !== null ? body.rider1Ms : body.fabioMs;
+    const raw2 = body.rider2Ms !== undefined && body.rider2Ms !== null ? body.rider2Ms : body.luisMs;
+
+    const r1Ms = raw1 !== undefined && raw1 !== null ? Number(raw1) : NaN;
+    const r2Ms = raw2 !== undefined && raw2 !== null ? Number(raw2) : NaN;
+
+    if (!stageNumero || isNaN(r1Ms) || isNaN(r2Ms)) {
+      return res.status(400).json({ ok: false, error: 'Missing or invalid stageNumero or times', received: body });
     }
 
     const sql = getSql();
     await ensureSchema(sql);
 
-    // 1. Obtener matchup y participantes
-    const [matchup] = await sql`SELECT * FROM matchups LIMIT 1`;
-    const participants = await sql`SELECT id, orden FROM participants WHERE matchup_id = ${matchup.id} ORDER BY orden ASC`;
-    const fabioId = participants[0]?.id;
-    const luisId = participants[1]?.id;
+    // 1. Obtener matchup
+    let matchup;
+    if (matchupId) {
+      const rows = await sql`SELECT * FROM matchups WHERE id = ${matchupId} LIMIT 1`;
+      matchup = rows[0];
+    }
+    if (!matchup) {
+      const rows = await sql`SELECT * FROM matchups ORDER BY created_at ASC LIMIT 1`;
+      matchup = rows[0];
+    }
+    if (!matchup) {
+      return res.status(404).json({ ok: false, error: 'Matchup not found' });
+    }
 
-    // 2. Obtener etapa
+    // 2. Participantes
+    const participants = await sql`SELECT id, orden FROM participants WHERE matchup_id = ${matchup.id} ORDER BY orden ASC`;
+    const r1Id = participants[0]?.id;
+    const r2Id = participants[1]?.id;
+
+    if (!r1Id || !r2Id) {
+      return res.status(400).json({ ok: false, error: 'Participants not found for matchup' });
+    }
+
+    // 3. Obtener etapa
     const [stage] = await sql`SELECT id FROM stages WHERE matchup_id = ${matchup.id} AND numero = ${stageNumero} LIMIT 1`;
     if (!stage) {
       return res.status(404).json({ ok: false, error: 'Stage not found' });
     }
 
-    // 3. Upsert tiempos para Fabio y Luis
+    // 4. Upsert tiempos para ambos corredores
     await sql`
       INSERT INTO stage_times (stage_id, participant_id, time_ms, updated_at)
-      VALUES (${stage.id}, ${fabioId}, ${fabioMs}, NOW())
+      VALUES (${stage.id}, ${r1Id}, ${r1Ms}, NOW())
       ON CONFLICT (stage_id, participant_id)
-      DO UPDATE SET time_ms = ${fabioMs}, updated_at = NOW();
+      DO UPDATE SET time_ms = ${r1Ms}, updated_at = NOW();
     `;
 
     await sql`
       INSERT INTO stage_times (stage_id, participant_id, time_ms, updated_at)
-      VALUES (${stage.id}, ${luisId}, ${luisMs}, NOW())
+      VALUES (${stage.id}, ${r2Id}, ${r2Ms}, NOW())
       ON CONFLICT (stage_id, participant_id)
-      DO UPDATE SET time_ms = ${luisMs}, updated_at = NOW();
+      DO UPDATE SET time_ms = ${r2Ms}, updated_at = NOW();
     `;
 
-    // 4. Actualizar etapa a FINALIZADA
+    // 5. Actualizar etapa a FINALIZADA
     await sql`
       UPDATE stages
       SET estado = 'FINALIZADA'
       WHERE id = ${stage.id};
     `;
 
-    // 5. Si la carrera estaba en PRE-RACE, pasarla a EN CURSO
+    // 6. Si el matchup estaba en PRE-RACE, pasar a EN CURSO
     if (matchup.estado === 'PRE-RACE') {
       await sql`
         UPDATE matchups
@@ -70,7 +92,7 @@ module.exports = async function handler(req, res) {
       `;
     }
 
-    return res.status(200).json({ ok: true, message: `Etapa ${stageNumero} guardada correctamente` });
+    return res.status(200).json({ ok: true, message: `Etapa ${stageNumero} guardada correctamente para ${matchup.nombre}` });
   } catch (err) {
     console.error('API save error:', err);
     return res.status(500).json({ ok: false, error: err.message });

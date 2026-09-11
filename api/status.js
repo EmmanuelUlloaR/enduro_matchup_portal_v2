@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = getBody(req);
-    const { status } = body;
+    const { status, matchupId } = body;
 
     if (!['PRE-RACE', 'EN CURSO', 'FINALIZADA'].includes(status)) {
       return res.status(400).json({ ok: false, error: 'Invalid status', received: body });
@@ -25,10 +25,18 @@ module.exports = async function handler(req, res) {
     const sql = getSql();
     await ensureSchema(sql);
 
-    await sql`
-      UPDATE matchups
-      SET estado = ${status}, updated_at = NOW();
-    `;
+    if (matchupId) {
+      await sql`
+        UPDATE matchups
+        SET estado = ${status}, updated_at = NOW()
+        WHERE id = ${matchupId};
+      `;
+    } else {
+      await sql`
+        UPDATE matchups
+        SET estado = ${status}, updated_at = NOW();
+      `;
+    }
 
     return res.status(200).json({ ok: true, message: `Estado actualizado a ${status}` });
   } catch (err) {

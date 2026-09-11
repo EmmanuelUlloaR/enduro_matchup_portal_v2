@@ -31,10 +31,17 @@
       </div>
     </header>
 
+    <!-- Matchup Switcher (Selector de Duelos) -->
+    <nav class="matchup-nav" id="matchupNav" aria-label="Selección de Duelo">
+      <div class="matchup-tabs" id="matchupTabs">
+        <!-- Renderizado dinámico de pestañas de duelos -->
+      </div>
+    </nav>
+
     <!-- Race Ribbon (Etapas ganadas y estado actual) -->
     <section class="race-ribbon" aria-label="Marcador general">
       <div class="ribbon-side">
-        <span class="score-badge">FABIO <b id="fabioScore">0</b></span>
+        <span class="score-badge"><span id="r1RibbonName">FABIO</span> <b id="fabioScore">0</b></span>
         <span>etapas ganadas</span>
       </div>
       <div class="ribbon-center">
@@ -43,17 +50,17 @@
       </div>
       <div class="ribbon-side right">
         <span>etapas ganadas</span>
-        <span class="score-badge"><b id="luisScore">0</b> LUIS</span>
+        <span class="score-badge"><b id="luisScore">0</b> <span id="r2RibbonName">LUIS</span></span>
       </div>
     </section>
 
-    <!-- Hero Section (Fabio vs Luis) -->
+    <!-- Hero Section (Fabio vs Luis / Ramón vs Ricky) -->
     <section class="hero" id="heroSection">
-      <!-- Fabio Card -->
+      <!-- Rider 1 Card -->
       <article class="rider fabio" id="fabioCard">
-        <img src="assets/fabio.png" alt="Fabio La Polinada Silvestri" id="fabioImg">
+        <img src="assets/fabio.png" alt="Rider 1" id="fabioImg">
         <div class="rider-info">
-          <div class="eyebrow">RIDER 01</div>
+          <div class="eyebrow" id="r1Eyebrow">RIDER 01</div>
           <div class="name" id="fabioName">Fabio</div>
           <div class="nick" id="fabioNick">“La Polinada”</div>
           <div class="surname" id="fabioSurname">SILVESTRI</div>
@@ -79,11 +86,11 @@
         </div>
       </div>
 
-      <!-- Luis Card -->
+      <!-- Rider 2 Card -->
       <article class="rider luis" id="luisCard">
-        <img src="assets/luis.png" alt="Luis Don Gata Peña" id="luisImg">
+        <img src="assets/luis.png" alt="Rider 2" id="luisImg">
         <div class="rider-info">
-          <div class="eyebrow">RIDER 02</div>
+          <div class="eyebrow" id="r2Eyebrow">RIDER 02</div>
           <div class="name" id="luisName">Luis</div>
           <div class="nick" id="luisNick">“Don Gata”</div>
           <div class="surname" id="luisSurname">PEÑA</div>
@@ -120,17 +127,17 @@
         <div class="marker" id="battleMarker"></div>
       </div>
       <div class="labels">
-        <span>Fabio “La Polinada”</span>
-        <span>Luis “Don Gata”</span>
+        <span id="sumLabel1">Fabio “La Polinada”</span>
+        <span id="sumLabel2">Luis “Don Gata”</span>
       </div>
       <div class="sumgrid">
         <div>
-          <div class="sumname">Fabio “La Polinada”</div>
+          <div class="sumname" id="sumName1">Fabio “La Polinada”</div>
           <div class="sumtime" id="fabioSumTotal">--:--.---</div>
         </div>
         <div class="sumlead" id="sumLeadText">Sin diferencia todavía</div>
         <div class="right">
-          <div class="sumname">Luis “Don Gata”</div>
+          <div class="sumname" id="sumName2">Luis “Don Gata”</div>
           <div class="sumtime" id="luisSumTotal">--:--.---</div>
         </div>
       </div>
@@ -252,6 +259,14 @@
       let winnerShown = false;
       let flashTimer = null;
 
+      // Inicialización de hash URL si se especifica un duelo
+      if (window.location.hash) {
+        const h = window.location.hash.toLowerCase();
+        if (h.includes('ramon') || h.includes('ricky') || h.includes('matchup-2') || h.includes('duelo-2')) {
+          service.setActiveMatchup(1);
+        }
+      }
+
       // Actualizar indicador de conexión Realtime
       service.onStatusChange((status) => {
         const badge = document.getElementById('connectionBadge');
@@ -313,11 +328,11 @@
         if (totals.completed < 4 && totals.isFinished !== true) return;
         if (!leader.winner || leader.winner === 'tie') return;
 
-        const pFabio = participants[0];
-        const pLuis = participants[1];
-        const isFabio = leader.winner === 'fabio';
-        const champ = isFabio ? pFabio : pLuis;
-        const champTime = isFabio ? totals.fabio : totals.luis;
+        const p1 = participants[0];
+        const p2 = participants[1];
+        const isR1 = leader.winner === 'rider1' || leader.winner === 'fabio';
+        const champ = isR1 ? p1 : p2;
+        const champTime = isR1 ? (totals.rider1 !== undefined ? totals.rider1 : totals.fabio) : (totals.rider2 !== undefined ? totals.rider2 : totals.luis);
 
         const nameElem = document.getElementById('winnerName');
         const nickElem = document.getElementById('winnerNick');
@@ -338,9 +353,53 @@
         winnerShown = true;
       }
 
+      function renderMatchupTabs(allMatchups, activeIndex) {
+        const container = document.getElementById('matchupTabs');
+        if (!container) return;
+
+        if (!allMatchups || allMatchups.length <= 1) {
+          container.style.display = 'none';
+          return;
+        }
+        container.style.display = 'inline-flex';
+
+        container.innerHTML = allMatchups.map((m, idx) => {
+          const isActive = idx === activeIndex;
+          const p1 = m.participants?.[0] || { nombre: 'Piloto 1' };
+          const p2 = m.participants?.[1] || { nombre: 'Piloto 2' };
+          const stCls = (m.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+          const icon = idx === 0 ? '🔥' : '⚡';
+
+          return `
+            <button type="button" class="matchup-tab ${isActive ? 'active' : ''}" data-idx="${idx}">
+              <span class="tab-icon">${icon}</span>
+              <span>${p1.nombre} vs ${p2.nombre}</span>
+              <span class="tab-badge ${stCls}">${m.estado || 'PRE-RACE'}</span>
+            </button>
+          `;
+        }).join('');
+
+        container.querySelectorAll('.matchup-tab').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-idx'), 10);
+            winnerShown = false;
+            service.setActiveMatchup(idx);
+            try {
+              window.location.hash = idx === 1 ? 'ramon-vs-ricky' : 'fabio-vs-luis';
+            } catch(e) {}
+          });
+        });
+      }
+
       function render(state) {
         if (!state) return;
-        const { matchup, stages, totals, scores, leader, participants } = state;
+        const { matchup, stages, totals, scores, leader, participants, allMatchups, activeIndex } = state;
+
+        const currentActiveIdx = activeIndex !== undefined ? activeIndex : service.activeMatchupIndex;
+        renderMatchupTabs(allMatchups || [state], currentActiveIdx);
+
+        const p1 = participants?.[0] || { nombre: 'Fabio', apodo: '“La Polinada”', apellido: 'SILVESTRI', foto_url: 'assets/fabio.png' };
+        const p2 = participants?.[1] || { nombre: 'Luis', apodo: '“Don Gata”', apellido: 'PEÑA', foto_url: 'assets/luis.png' };
 
         // 1. Estado de carrera (PRE-RACE, EN CURSO, FINALIZADA)
         const statusBadge = document.getElementById('raceStatusBadge');
@@ -363,15 +422,24 @@
         }
 
         // 2. Score Ribbon
+        const r1RibbonName = document.getElementById('r1RibbonName');
+        const r2RibbonName = document.getElementById('r2RibbonName');
         const fabioScore = document.getElementById('fabioScore');
         const luisScore = document.getElementById('luisScore');
         const ribbonStage = document.getElementById('ribbonStage');
         const ribbonValue = document.getElementById('ribbonValue');
 
-        if (fabioScore) fabioScore.textContent = scores.fabio;
-        if (luisScore) luisScore.textContent = scores.luis;
+        if (r1RibbonName) r1RibbonName.textContent = p1.nombre.toUpperCase();
+        if (r2RibbonName) r2RibbonName.textContent = p2.nombre.toUpperCase();
+
+        const s1Score = scores.rider1 !== undefined ? scores.rider1 : scores.fabio;
+        const s2Score = scores.rider2 !== undefined ? scores.rider2 : scores.luis;
+        if (fabioScore) fabioScore.textContent = s1Score;
+        if (luisScore) luisScore.textContent = s2Score;
 
         const isFinal = totals.completed === 4 || matchup.estado === 'FINALIZADA';
+        const isR1Leading = leader.winner === 'rider1' || leader.winner === 'fabio';
+        const isR2Leading = leader.winner === 'rider2' || leader.winner === 'luis';
 
         if (ribbonStage) {
           ribbonStage.textContent = isFinal ? 'RESULTADO DEFINITIVO' : totals.completed === 0 ? 'PRE-RACE' : `TRAS ETAPA ${totals.completed}`;
@@ -379,37 +447,73 @@
 
         if (ribbonValue) {
           if (isFinal) {
-            ribbonValue.textContent = leader.winner === 'tie' ? 'EMPATE FINAL' : `${leader.winner === 'fabio' ? 'FABIO' : 'LUIS'} GANA EL MATCHUP`;
+            ribbonValue.textContent = leader.winner === 'tie' ? 'EMPATE FINAL' : `${isR1Leading ? p1.nombre.toUpperCase() : p2.nombre.toUpperCase()} GANA EL MATCHUP`;
           } else if (totals.completed === 0) {
             ribbonValue.textContent = 'Esperando Etapa 1';
           } else if (leader.winner === 'tie') {
             ribbonValue.textContent = 'Empate en tiempo acumulado';
           } else {
-            const leadRider = leader.winner === 'fabio' ? 'Fabio' : 'Luis';
+            const leadRider = isR1Leading ? p1.nombre : p2.nombre;
             ribbonValue.textContent = `${leadRider} lidera por ${dFmt(leader.deltaMs)}`;
           }
         }
 
-        // 3. Hero Section (Totales, Leader glow y tags)
+        // 3. Hero Section (Pilotos dinámicos, Fotos, Totales, Leader glow y tags)
+        const fabioImg = document.getElementById('fabioImg');
+        const fabioName = document.getElementById('fabioName');
+        const fabioNick = document.getElementById('fabioNick');
+        const fabioSurname = document.getElementById('fabioSurname');
         const fabioTotal = document.getElementById('fabioTotal');
+
+        const luisImg = document.getElementById('luisImg');
+        const luisName = document.getElementById('luisName');
+        const luisNick = document.getElementById('luisNick');
+        const luisSurname = document.getElementById('luisSurname');
         const luisTotal = document.getElementById('luisTotal');
+
         const fabioSumTotal = document.getElementById('fabioSumTotal');
         const luisSumTotal = document.getElementById('luisSumTotal');
 
-        if (fabioTotal) fabioTotal.textContent = fmt(totals.fabio);
-        if (luisTotal) luisTotal.textContent = fmt(totals.luis);
-        if (fabioSumTotal) fabioSumTotal.textContent = fmt(totals.fabio);
-        if (luisSumTotal) luisSumTotal.textContent = fmt(totals.luis);
+        if (fabioImg) {
+          fabioImg.src = p1.foto_url;
+          fabioImg.alt = `${p1.nombre} ${p1.apodo} ${p1.apellido}`;
+        }
+        if (fabioName) fabioName.textContent = p1.nombre;
+        if (fabioNick) fabioNick.textContent = p1.apodo;
+        if (fabioSurname) fabioSurname.textContent = p1.apellido;
+
+        if (luisImg) {
+          luisImg.src = p2.foto_url;
+          luisImg.alt = `${p2.nombre} ${p2.apodo} ${p2.apellido}`;
+        }
+        if (luisName) luisName.textContent = p2.nombre;
+        if (luisNick) luisNick.textContent = p2.apodo;
+        if (luisSurname) luisSurname.textContent = p2.apellido;
+
+        const t1Val = totals.rider1 !== undefined ? totals.rider1 : totals.fabio;
+        const t2Val = totals.rider2 !== undefined ? totals.rider2 : totals.luis;
+
+        if (fabioTotal) fabioTotal.textContent = fmt(t1Val);
+        if (luisTotal) luisTotal.textContent = fmt(t2Val);
+        if (fabioSumTotal) fabioSumTotal.textContent = fmt(t1Val);
+        if (luisSumTotal) luisSumTotal.textContent = fmt(t2Val);
 
         const fabioCard = document.getElementById('fabioCard');
         const luisCard = document.getElementById('luisCard');
-        if (fabioCard) fabioCard.classList.toggle('leading', leader.winner === 'fabio');
-        if (luisCard) luisCard.classList.toggle('leading', leader.winner === 'luis');
+        const themeCls1 = currentActiveIdx === 1 ? 'ramon' : 'fabio';
+        const themeCls2 = currentActiveIdx === 1 ? 'ricky' : 'luis';
+
+        if (fabioCard) {
+          fabioCard.className = `rider ${themeCls1} ${isR1Leading ? 'leading' : ''}`;
+        }
+        if (luisCard) {
+          luisCard.className = `rider ${themeCls2} ${isR2Leading ? 'leading' : ''}`;
+        }
 
         const fabioTag = document.getElementById('fabioTag');
         const luisTag = document.getElementById('luisTag');
-        if (fabioTag) fabioTag.innerHTML = leader.winner === 'fabio' ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
-        if (luisTag) luisTag.innerHTML = leader.winner === 'luis' ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
+        if (fabioTag) fabioTag.innerHTML = isR1Leading ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
+        if (luisTag) luisTag.innerHTML = isR2Leading ? `<span class="dot"></span>${isFinal ? 'GANADOR' : 'LÍDER'}` : '';
 
         // Versus Leadbox y barra de 4 puntos
         const leadBox = document.getElementById('leadBox');
@@ -435,6 +539,11 @@
         if (stagesContainer) {
           stagesContainer.innerHTML = stages.map((s, idx) => {
             const done = s.completed;
+            const ms1 = s.rider1Ms !== undefined ? s.rider1Ms : s.fabioMs;
+            const ms2 = s.rider2Ms !== undefined ? s.rider2Ms : s.luisMs;
+            const isR1Win = s.winner === 'rider1' || s.winner === 'fabio';
+            const isR2Win = s.winner === 'rider2' || s.winner === 'luis';
+
             let deltaText = 'Pendiente de resultados';
             let cls = '';
             let chip = '';
@@ -443,20 +552,20 @@
               if (s.winner === 'tie') {
                 deltaText = 'Etapa empatada';
                 chip = '<span class="winner-chip">Empate</span>';
-              } else if (s.winner === 'fabio') {
-                deltaText = `<strong>Fabio gana</strong> por ${dFmt(s.deltaMs)}`;
+              } else if (isR1Win) {
+                deltaText = `<strong>${p1.nombre} gana</strong> por ${dFmt(s.deltaMs)}`;
                 cls = 'won-fabio';
-                chip = '<span class="winner-chip">Fabio</span>';
+                chip = `<span class="winner-chip">${p1.nombre}</span>`;
               } else {
-                deltaText = `<strong>Luis gana</strong> por ${dFmt(s.deltaMs)}`;
+                deltaText = `<strong>${p2.nombre} gana</strong> por ${dFmt(s.deltaMs)}`;
                 cls = 'won-luis';
-                chip = '<span class="winner-chip">Luis</span>';
+                chip = `<span class="winner-chip">${p2.nombre}</span>`;
               }
             }
 
             // Detectar si cambió este tiempo
             const previousTime = lastStageTimes[idx];
-            const hasChanged = previousTime !== null && (previousTime.f !== s.fabioMs || previousTime.l !== s.luisMs);
+            const hasChanged = previousTime !== null && (previousTime.f !== ms1 || previousTime.l !== ms2);
 
             return `
           <article class="stage ${cls} ${hasChanged ? 'flash' : ''}" id="stageCard${s.numero}">
@@ -467,13 +576,13 @@
             </div>
             <div class="race">
               <div class="side">
-                <label>FABIO</label>
-                <div class="time ${hasChanged ? 'changed' : ''}">${fmt(s.fabioMs)}</div>
+                <label>${p1.nombre.toUpperCase()}</label>
+                <div class="time ${hasChanged ? 'changed' : ''}">${fmt(ms1)}</div>
               </div>
               <div class="minivs">VS</div>
               <div class="side">
-                <label>LUIS</label>
-                <div class="time ${hasChanged ? 'changed' : ''}">${fmt(s.luisMs)}</div>
+                <label>${p2.nombre.toUpperCase()}</label>
+                <div class="time ${hasChanged ? 'changed' : ''}">${fmt(ms2)}</div>
               </div>
             </div>
             <div class="delta">
@@ -486,7 +595,11 @@
         }
 
         // Guardar referencia para detectar cambios en siguiente ciclo
-        lastStageTimes = stages.map(s => ({ f: s.fabioMs, l: s.luisMs }));
+        lastStageTimes = stages.map(s => {
+          const ms1 = s.rider1Ms !== undefined ? s.rider1Ms : s.fabioMs;
+          const ms2 = s.rider2Ms !== undefined ? s.rider2Ms : s.luisMs;
+          return { f: ms1, l: ms2 };
+        });
 
         // 5. Barra de Batalla y Marcador
         const completedStagesText = document.getElementById('completedStagesText');
@@ -495,13 +608,23 @@
         const marker = document.getElementById('battleMarker');
         if (marker) {
           let pos = 50;
-          if (totals.fabio !== null && totals.luis !== null) {
-            const diff = totals.luis - totals.fabio; // positivo = Fabio lidera
+          if (t1Val !== null && t2Val !== null) {
+            const diff = t2Val - t1Val; // positivo = R1 lidera
             const normalized = Math.max(-1, Math.min(1, diff / 10000));
             pos = 50 - (normalized * 40);
           }
           marker.style.left = pos + '%';
         }
+
+        const sumLabel1 = document.getElementById('sumLabel1');
+        const sumLabel2 = document.getElementById('sumLabel2');
+        const sumName1 = document.getElementById('sumName1');
+        const sumName2 = document.getElementById('sumName2');
+
+        if (sumLabel1) sumLabel1.textContent = `${p1.nombre} ${p1.apodo}`;
+        if (sumLabel2) sumLabel2.textContent = `${p2.nombre} ${p2.apodo}`;
+        if (sumName1) sumName1.textContent = `${p1.nombre} ${p1.apodo}`;
+        if (sumName2) sumName2.textContent = `${p2.nombre} ${p2.apodo}`;
 
         const sumLeadText = document.getElementById('sumLeadText');
         if (sumLeadText) {

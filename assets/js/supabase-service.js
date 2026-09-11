@@ -1,6 +1,7 @@
 /**
- * Enduro Evolution 2026 — Supabase Service & Realtime Client
- * Connects to Supabase DB or seamlessly falls back to local storage with multi-tab Realtime.
+ * Enduro Evolution 2026 — Supabase Service & Realtime Client (v2 Multi-Matchup)
+ * Supports multiple matchups (Fabio vs Luis, Ramón vs Ricky), Neon Postgres Serverless,
+ * Supabase Realtime, and robust LocalStorage fallback with BroadcastChannel.
  */
 
 (function () {
@@ -14,7 +15,7 @@
 
   // Fetch inteligente con fallback automático a la API productiva en Vercel (Neon Postgres)
   async function apiFetch(path, options = {}) {
-    // 1. Probar ruta relativa en el mismo origen (directo en Vercel o en cualquier dominio de producción)
+    // 1. Probar ruta relativa en el mismo origen
     try {
       const resp = await fetch(path, options);
       if (resp && resp.ok) return resp;
@@ -70,24 +71,42 @@
     return (Math.abs(ms) / 1000).toFixed(3) + 's';
   }
 
-  // Estructura de fallback local si Supabase no está configurado
+  // Estructura de fallback local con 2 duelos
   function getBlankLocalData() {
     return {
-      matchup: {
-        id: 'local-matchup-1',
-        nombre: 'Enduro Evolution 2026 — Match Up en Llamas',
-        estado: 'PRE-RACE',
-        fecha: new Date().toISOString()
-      },
-      participants: [
-        { id: 'p-fabio', nombre: 'Fabio', apodo: '“La Polinada”', apellido: 'SILVESTRI', foto_url: 'assets/fabio.png', orden: 1 },
-        { id: 'p-luis', nombre: 'Luis', apodo: '“Don Gata”', apellido: 'PEÑA', foto_url: 'assets/luis.png', orden: 2 }
-      ],
-      stages: [
-        { id: 's-1', numero: 1, estado: 'PENDIENTE', fabioMs: null, luisMs: null },
-        { id: 's-2', numero: 2, estado: 'PENDIENTE', fabioMs: null, luisMs: null },
-        { id: 's-3', numero: 3, estado: 'PENDIENTE', fabioMs: null, luisMs: null },
-        { id: 's-4', numero: 4, estado: 'PENDIENTE', fabioMs: null, luisMs: null }
+      matchups: [
+        {
+          id: 'local-matchup-1',
+          nombre: 'Enduro Evolution 2026 — Fabio vs Luis',
+          estado: 'PRE-RACE',
+          fecha: new Date().toISOString(),
+          participants: [
+            { id: 'p-fabio', nombre: 'Fabio', apodo: '“La Polinada”', apellido: 'SILVESTRI', foto_url: 'assets/fabio.png', orden: 1 },
+            { id: 'p-luis', nombre: 'Luis', apodo: '“Don Gata”', apellido: 'PEÑA', foto_url: 'assets/luis.png', orden: 2 }
+          ],
+          stages: [
+            { id: 's-1-1', numero: 1, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null },
+            { id: 's-1-2', numero: 2, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null },
+            { id: 's-1-3', numero: 3, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null },
+            { id: 's-1-4', numero: 4, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null }
+          ]
+        },
+        {
+          id: 'local-matchup-2',
+          nombre: 'Matchup 2 — Ramón Reyes vs Ricky Tarrazo',
+          estado: 'PRE-RACE',
+          fecha: new Date().toISOString(),
+          participants: [
+            { id: 'p-ramon', nombre: 'Ramón', apodo: '“El Patrón”', apellido: 'REYES', foto_url: 'assets/ramon.png', orden: 1 },
+            { id: 'p-ricky', nombre: 'Ricky', apodo: '“Chuquiton”', apellido: 'TARRAZO', foto_url: 'assets/ricky.png', orden: 2 }
+          ],
+          stages: [
+            { id: 's-2-1', numero: 1, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null },
+            { id: 's-2-2', numero: 2, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null },
+            { id: 's-2-3', numero: 3, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null },
+            { id: 's-2-4', numero: 4, estado: 'PENDIENTE', rider1Ms: null, rider2Ms: null, fabioMs: null, luisMs: null }
+          ]
+        }
       ],
       updatedAt: null
     };
@@ -97,7 +116,19 @@
     try {
       const stored = localStorage.getItem(LOCAL_DB_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (parsed && Array.isArray(parsed.matchups) && parsed.matchups.length >= 2) {
+          return parsed;
+        }
+        // Migración limpia si venía de v1 (un solo matchup)
+        const fresh = getBlankLocalData();
+        if (parsed && parsed.matchup && Array.isArray(parsed.stages)) {
+          fresh.matchups[0].matchup = parsed.matchup;
+          fresh.matchups[0].stages = parsed.stages;
+          if (parsed.participants) fresh.matchups[0].participants = parsed.participants;
+        }
+        saveLocalDb(fresh);
+        return fresh;
       }
     } catch (e) {
       console.warn('Error reading local db:', e);
@@ -121,6 +152,8 @@
       this.statusListeners = new Set();
       this.channel = null;
       this.cachedState = null;
+      this.allMatchups = [];
+      this.activeMatchupIndex = 0;
       this.init();
     }
 
@@ -146,7 +179,6 @@
       if (hasCredentials && window.supabase && typeof window.supabase.createClient === 'function') {
         try {
           this.supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-          // Verificar conexión con un select simple
           const { data, error } = await this.supabase.from('matchups').select('id').limit(1);
           if (!error) {
             this.isOnline = true;
@@ -235,34 +267,68 @@
       });
     }
 
-    // Calcula estadísticas, líder y totales del estado
-    computeMetrics(matchup, participants, stages) {
-      const pFabio = participants.find(p => p.orden === 1) || participants[0];
-      const pLuis = participants.find(p => p.orden === 2) || participants[1];
+    // Cambiar el matchup activo
+    setActiveMatchup(idOrIndex) {
+      if (typeof idOrIndex === 'number') {
+        this.activeMatchupIndex = idOrIndex;
+      } else if (typeof idOrIndex === 'string') {
+        const foundIdx = this.allMatchups.findIndex(m => m.id === idOrIndex || String(m.id).includes(idOrIndex));
+        if (foundIdx !== -1) {
+          this.activeMatchupIndex = foundIdx;
+        }
+      }
 
-      let fabioAccum = 0;
-      let luisAccum = 0;
+      if (this.allMatchups && this.allMatchups[this.activeMatchupIndex]) {
+        this.cachedState = {
+          ...this.allMatchups[this.activeMatchupIndex],
+          allMatchups: this.allMatchups,
+          activeIndex: this.activeMatchupIndex,
+          isOnline: this.isOnline,
+          connectionStatus: this.connectionStatus || (this.isOnline ? 'connected' : 'offline_mode')
+        };
+        this.triggerUpdate();
+      }
+    }
+
+    getActiveMatchup() {
+      return this.allMatchups[this.activeMatchupIndex] || this.cachedState;
+    }
+
+    getAllMatchups() {
+      return this.allMatchups;
+    }
+
+    // Calcula estadísticas, líder y totales de un matchup específico
+    computeMetrics(matchup, participants, stages, mIndex = 0) {
+      const p1 = participants.find(p => p.orden === 1) || participants[0] || { nombre: 'Piloto 1', apodo: '', apellido: '' };
+      const p2 = participants.find(p => p.orden === 2) || participants[1] || { nombre: 'Piloto 2', apodo: '', apellido: '' };
+
+      let r1Accum = 0;
+      let r2Accum = 0;
       let completedCount = 0;
-      let fabioWins = 0;
-      let luisWins = 0;
+      let r1Wins = 0;
+      let r2Wins = 0;
       let ties = 0;
 
       const enrichedStages = stages.map((st) => {
-        const hasBoth = st.fabioMs !== null && st.luisMs !== null;
+        const t1 = st.rider1Ms !== undefined && st.rider1Ms !== null ? st.rider1Ms : st.fabioMs;
+        const t2 = st.rider2Ms !== undefined && st.rider2Ms !== null ? st.rider2Ms : st.luisMs;
+        const hasBoth = t1 !== null && t2 !== null && !isNaN(t1) && !isNaN(t2);
+
         let deltaMs = null;
         let winner = null;
 
         if (hasBoth) {
           completedCount++;
-          fabioAccum += st.fabioMs;
-          luisAccum += st.luisMs;
-          deltaMs = st.luisMs - st.fabioMs;
+          r1Accum += t1;
+          r2Accum += t2;
+          deltaMs = t2 - t1; // > 0 significa que r1 fue más veloz
           if (deltaMs > 0) {
-            winner = 'fabio';
-            fabioWins++;
+            winner = 'rider1';
+            r1Wins++;
           } else if (deltaMs < 0) {
-            winner = 'luis';
-            luisWins++;
+            winner = 'rider2';
+            r2Wins++;
           } else {
             winner = 'tie';
             ties++;
@@ -271,28 +337,34 @@
 
         return {
           ...st,
+          rider1Ms: t1,
+          rider2Ms: t2,
+          fabioMs: t1, // compatibilidad
+          luisMs: t2,  // compatibilidad
           completed: hasBoth,
           deltaMs,
           winner
         };
       });
 
-      const totalFabio = completedCount > 0 ? fabioAccum : null;
-      const totalLuis = completedCount > 0 ? luisAccum : null;
+      const totalR1 = completedCount > 0 ? r1Accum : null;
+      const totalR2 = completedCount > 0 ? r2Accum : null;
 
       let leaderWinner = null;
       let leaderDelta = 0;
       let leaderText = 'Esperando tiempos...';
 
-      if (totalFabio !== null && totalLuis !== null) {
-        const diff = totalLuis - totalFabio;
+      if (totalR1 !== null && totalR2 !== null) {
+        const diff = totalR2 - totalR1;
         leaderDelta = Math.abs(diff);
         if (diff > 0) {
-          leaderWinner = 'fabio';
-          leaderText = 'LA POLINADA LIDERA';
+          leaderWinner = 'rider1';
+          const cleanNick = p1.apodo ? p1.apodo.replace(/[“”"]/g, '').toUpperCase() : p1.nombre.toUpperCase();
+          leaderText = `${cleanNick} LIDERA`;
         } else if (diff < 0) {
-          leaderWinner = 'luis';
-          leaderText = 'DON GATA LIDERA';
+          leaderWinner = 'rider2';
+          const cleanNick = p2.apodo ? p2.apodo.replace(/[“”"]/g, '').toUpperCase() : p2.nombre.toUpperCase();
+          leaderText = `${cleanNick} LIDERA`;
         } else {
           leaderWinner = 'tie';
           leaderText = 'EMPATE TOTAL';
@@ -300,27 +372,34 @@
       }
 
       return {
+        id: matchup.id,
+        nombre: matchup.nombre,
+        estado: matchup.estado,
+        fecha: matchup.fecha,
+        index: mIndex,
         matchup,
-        participants: [pFabio, pLuis],
+        participants: [p1, p2],
         stages: enrichedStages,
         totals: {
-          fabio: totalFabio,
-          luis: totalLuis,
+          rider1: totalR1,
+          rider2: totalR2,
+          fabio: totalR1, // retrocompatibilidad
+          luis: totalR2,  // retrocompatibilidad
           completed: completedCount,
           isFinished: completedCount === 4 || matchup.estado === 'FINALIZADA'
         },
         scores: {
-          fabio: fabioWins,
-          luis: luisWins,
+          rider1: r1Wins,
+          rider2: r2Wins,
+          fabio: r1Wins, // retrocompatibilidad
+          luis: r2Wins,  // retrocompatibilidad
           ties
         },
         leader: {
           winner: leaderWinner,
           deltaMs: leaderDelta,
           text: leaderText
-        },
-        isOnline: this.isOnline,
-        connectionStatus: this.connectionStatus || (this.isOnline ? 'connected' : 'offline_mode')
+        }
       };
     }
 
@@ -330,12 +409,32 @@
         const resp = await apiFetch('/api/state', { cache: 'no-store' });
         if (resp && resp.ok) {
           const json = await resp.json();
-          if (json.ok && json.data) {
+          if (json.ok) {
             this.isNeon = true;
             this.isOnline = true;
             this.notifyStatus('connected');
+
+            if (json.matchups && json.matchups.length >= 2) {
+              this.allMatchups = json.matchups;
+            } else if (json.data || (json.matchups && json.matchups.length === 1)) {
+              const primary = json.data || json.matchups[0];
+              const local = loadLocalDb();
+              const m1Enriched = this.computeMetrics(primary.matchup || primary, primary.participants, primary.stages, 0);
+              const m2Obj = local.matchups[1];
+              const m2Enriched = m2Obj ? this.computeMetrics(
+                { id: m2Obj.id, nombre: m2Obj.nombre, estado: m2Obj.estado, fecha: m2Obj.fecha },
+                m2Obj.participants,
+                m2Obj.stages,
+                1
+              ) : null;
+              this.allMatchups = m2Enriched ? [m1Enriched, m2Enriched] : [m1Enriched];
+            }
+
+            const current = this.allMatchups[this.activeMatchupIndex] || this.allMatchups[0];
             this.cachedState = {
-              ...json.data,
+              ...current,
+              allMatchups: this.allMatchups,
+              activeIndex: this.activeMatchupIndex,
               isOnline: true,
               connectionStatus: 'connected'
             };
@@ -350,59 +449,44 @@
       // 2. Supabase directo
       if (this.isOnline && this.supabase) {
         try {
-          // 1. Obtener matchup
-          const { data: matchups, error: mErr } = await this.supabase
+          const { data: rawMatchups, error: mErr } = await this.supabase
             .from('matchups')
             .select('*')
-            .order('created_at', { ascending: true })
-            .limit(1);
+            .order('created_at', { ascending: true });
 
-          if (mErr || !matchups?.length) throw mErr || new Error('No matchup found');
-          const matchup = matchups[0];
+          if (mErr || !rawMatchups?.length) throw mErr || new Error('No matchups found');
 
-          // 2. Participantes
-          const { data: participants, error: pErr } = await this.supabase
-            .from('participants')
-            .select('*')
-            .eq('matchup_id', matchup.id)
-            .order('orden', { ascending: true });
+          const { data: rawParticipants } = await this.supabase.from('participants').select('*').order('orden', { ascending: true });
+          const { data: rawStages } = await this.supabase.from('stages').select('*').order('numero', { ascending: true });
+          const { data: rawTimes } = await this.supabase.from('stage_times').select('*');
 
-          if (pErr || !participants?.length) throw pErr || new Error('No participants found');
+          this.allMatchups = rawMatchups.map((m, mIdx) => {
+            const mParticipants = (rawParticipants || []).filter(p => p.matchup_id === m.id).sort((a, b) => a.orden - b.orden);
+            const mStages = (rawStages || []).filter(s => s.matchup_id === m.id).sort((a, b) => a.numero - b.numero);
 
-          // 3. Etapas
-          const { data: rawStages, error: sErr } = await this.supabase
-            .from('stages')
-            .select('*')
-            .eq('matchup_id', matchup.id)
-            .order('numero', { ascending: true });
+            const mappedStages = mStages.map(st => {
+              const t1 = rawTimes?.find(t => t.stage_id === st.id && t.participant_id === mParticipants[0]?.id);
+              const t2 = rawTimes?.find(t => t.stage_id === st.id && t.participant_id === mParticipants[1]?.id);
+              return {
+                id: st.id,
+                numero: st.numero,
+                estado: st.estado,
+                rider1Ms: t1 ? Number(t1.time_ms) : null,
+                rider2Ms: t2 ? Number(t2.time_ms) : null
+              };
+            });
 
-          if (sErr) throw sErr;
-
-          // 4. Tiempos de etapa
-          const stageIds = rawStages.map(s => s.id);
-          const { data: rawTimes, error: tErr } = await this.supabase
-            .from('stage_times')
-            .select('*')
-            .in('stage_id', stageIds);
-
-          if (tErr) throw tErr;
-
-          const fabioId = participants[0].id;
-          const luisId = participants[1].id;
-
-          const stages = rawStages.map(st => {
-            const fabioTime = rawTimes.find(t => t.stage_id === st.id && t.participant_id === fabioId);
-            const luisTime = rawTimes.find(t => t.stage_id === st.id && t.participant_id === luisId);
-            return {
-              id: st.id,
-              numero: st.numero,
-              estado: st.estado,
-              fabioMs: fabioTime ? Number(fabioTime.time_ms) : null,
-              luisMs: luisTime ? Number(luisTime.time_ms) : null
-            };
+            return this.computeMetrics(m, mParticipants, mappedStages, mIdx);
           });
 
-          this.cachedState = this.computeMetrics(matchup, participants, stages);
+          const current = this.allMatchups[this.activeMatchupIndex] || this.allMatchups[0];
+          this.cachedState = {
+            ...current,
+            allMatchups: this.allMatchups,
+            activeIndex: this.activeMatchupIndex,
+            isOnline: true,
+            connectionStatus: 'connected'
+          };
           this.triggerUpdate();
           return this.cachedState;
         } catch (e) {
@@ -412,7 +496,23 @@
 
       // 3. Carga desde DB local
       const local = loadLocalDb();
-      this.cachedState = this.computeMetrics(local.matchup, local.participants, local.stages);
+      this.allMatchups = local.matchups.map((mObj, idx) => {
+        return this.computeMetrics(
+          { id: mObj.id, nombre: mObj.nombre, estado: mObj.estado, fecha: mObj.fecha },
+          mObj.participants,
+          mObj.stages,
+          idx
+        );
+      });
+
+      const current = this.allMatchups[this.activeMatchupIndex] || this.allMatchups[0];
+      this.cachedState = {
+        ...current,
+        allMatchups: this.allMatchups,
+        activeIndex: this.activeMatchupIndex,
+        isOnline: false,
+        connectionStatus: this.connectionStatus || 'offline_mode'
+      };
       this.triggerUpdate();
       return this.cachedState;
     }
@@ -421,65 +521,78 @@
     // Mutaciones de Datos (Guardar tiempos, borrar, cambiar estado)
     // =========================================================================
 
-    async saveStageTimes(stageNumero, fabioMs, luisMs) {
-      // Prioridad Neon Serverless vía API
-      try {
-        const resp = await apiFetch('/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stageNumero, fabioMs, luisMs })
-        });
-        if (resp && resp.ok) {
-          this.isNeon = true;
-          this.isOnline = true;
-          await this.refresh();
-          return true;
+    async saveStageTimes(stageNumero, rider1Ms, rider2Ms, matchupId = null) {
+      const activeMatchup = this.getActiveMatchup();
+      const targetMatchupId = matchupId || activeMatchup?.id;
+      const isLocalId = !targetMatchupId || String(targetMatchupId).startsWith('local-');
+
+      // Prioridad Neon Serverless vía API (solo si el ID es de Neon/remoto)
+      if (!isLocalId) {
+        try {
+          const resp = await apiFetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stageNumero,
+              rider1Ms,
+              rider2Ms,
+              fabioMs: rider1Ms,
+              luisMs: rider2Ms,
+              matchupId: targetMatchupId
+            })
+          });
+          if (resp && resp.ok) {
+            this.isNeon = true;
+            this.isOnline = true;
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error saving to Neon API:', e);
         }
-      } catch (e) {
-        console.error('Error saving to Neon API:', e);
       }
 
-      if (this.isOnline && this.supabase && this.cachedState) {
+      // Fallback Supabase
+      if (this.isOnline && this.supabase) {
         try {
-          const { matchup, participants, stages } = this.cachedState;
-          const stage = stages.find(s => s.numero === stageNumero);
+          const { data: stages } = await this.supabase
+            .from('stages')
+            .select('*')
+            .eq('matchup_id', targetMatchupId)
+            .eq('numero', stageNumero);
+
+          const stage = stages?.[0];
           if (!stage) throw new Error('Etapa no encontrada');
 
-          const fabioId = participants[0].id;
-          const luisId = participants[1].id;
+          const { data: participants } = await this.supabase
+            .from('participants')
+            .select('*')
+            .eq('matchup_id', targetMatchupId)
+            .order('orden', { ascending: true });
 
-          // Upsert para Fabio
-          const { error: fErr } = await this.supabase
-            .from('stage_times')
-            .upsert({
+          const r1Id = participants?.[0]?.id;
+          const r2Id = participants?.[1]?.id;
+
+          if (r1Id) {
+            await this.supabase.from('stage_times').upsert({
               stage_id: stage.id,
-              participant_id: fabioId,
-              time_ms: fabioMs,
+              participant_id: r1Id,
+              time_ms: rider1Ms,
               updated_at: new Date().toISOString()
             }, { onConflict: 'stage_id,participant_id' });
-          if (fErr) throw fErr;
-
-          // Upsert para Luis
-          const { error: lErr } = await this.supabase
-            .from('stage_times')
-            .upsert({
-              stage_id: stage.id,
-              participant_id: luisId,
-              time_ms: luisMs,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'stage_id,participant_id' });
-          if (lErr) throw lErr;
-
-          // Actualizar estado de etapa a FINALIZADA
-          await this.supabase
-            .from('stages')
-            .update({ estado: 'FINALIZADA' })
-            .eq('id', stage.id);
-
-          // Si el matchup estaba en PRE-RACE, pasarlo automáticamente a EN CURSO
-          if (matchup.estado === 'PRE-RACE') {
-            await this.updateRaceStatus('EN CURSO');
           }
+
+          if (r2Id) {
+            await this.supabase.from('stage_times').upsert({
+              stage_id: stage.id,
+              participant_id: r2Id,
+              time_ms: rider2Ms,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'stage_id,participant_id' });
+          }
+
+          await this.supabase.from('stages').update({ estado: 'FINALIZADA' }).eq('id', stage.id);
+          await this.supabase.from('matchups').update({ estado: 'EN CURSO' }).eq('id', targetMatchupId);
 
           await this.refresh();
           return true;
@@ -490,53 +603,61 @@
 
       // Guardar en DB local
       const local = loadLocalDb();
-      const st = local.stages.find(s => s.numero === stageNumero);
-      if (st) {
-        st.fabioMs = fabioMs;
-        st.luisMs = luisMs;
-        st.estado = 'FINALIZADA';
-        if (local.matchup.estado === 'PRE-RACE') {
-          local.matchup.estado = 'EN CURSO';
+      const mItem = local.matchups.find(m => m.id === targetMatchupId) || local.matchups[this.activeMatchupIndex];
+      if (mItem) {
+        const st = mItem.stages.find(s => s.numero === stageNumero);
+        if (st) {
+          st.rider1Ms = rider1Ms;
+          st.rider2Ms = rider2Ms;
+          st.fabioMs = rider1Ms;
+          st.luisMs = rider2Ms;
+          st.estado = 'FINALIZADA';
+          if (mItem.estado === 'PRE-RACE') {
+            mItem.estado = 'EN CURSO';
+          }
+          saveLocalDb(local);
+          await this.refresh();
+          return true;
         }
-        saveLocalDb(local);
-        await this.refresh();
-        return true;
       }
       return false;
     }
 
-    async clearStageTimes(stageNumero) {
-      try {
-        const resp = await apiFetch('/api/clear', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stageNumero })
-        });
-        if (resp && resp.ok) {
-          this.isNeon = true;
-          this.isOnline = true;
-          await this.refresh();
-          return true;
+    async clearStageTimes(stageNumero, matchupId = null) {
+      const activeMatchup = this.getActiveMatchup();
+      const targetMatchupId = matchupId || activeMatchup?.id;
+      const isLocalId = !targetMatchupId || String(targetMatchupId).startsWith('local-');
+
+      if (!isLocalId) {
+        try {
+          const resp = await apiFetch('/api/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stageNumero, matchupId: targetMatchupId })
+          });
+          if (resp && resp.ok) {
+            this.isNeon = true;
+            this.isOnline = true;
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error clearing on Neon API:', e);
         }
-      } catch (e) {
-        console.error('Error clearing on Neon API:', e);
       }
 
-      if (this.isOnline && this.supabase && this.cachedState) {
+      if (this.isOnline && this.supabase) {
         try {
-          const { stages } = this.cachedState;
-          const stage = stages.find(s => s.numero === stageNumero);
+          const { data: stages } = await this.supabase
+            .from('stages')
+            .select('id')
+            .eq('matchup_id', targetMatchupId)
+            .eq('numero', stageNumero);
+
+          const stage = stages?.[0];
           if (stage) {
-            await this.supabase
-              .from('stage_times')
-              .delete()
-              .eq('stage_id', stage.id);
-
-            await this.supabase
-              .from('stages')
-              .update({ estado: 'PENDIENTE' })
-              .eq('id', stage.id);
-
+            await this.supabase.from('stage_times').delete().eq('stage_id', stage.id);
+            await this.supabase.from('stages').update({ estado: 'PENDIENTE' }).eq('id', stage.id);
             await this.refresh();
             return true;
           }
@@ -546,45 +667,53 @@
       }
 
       const local = loadLocalDb();
-      const st = local.stages.find(s => s.numero === stageNumero);
-      if (st) {
-        st.fabioMs = null;
-        st.luisMs = null;
-        st.estado = 'PENDIENTE';
-        saveLocalDb(local);
-        await this.refresh();
-        return true;
+      const mItem = local.matchups.find(m => m.id === targetMatchupId) || local.matchups[this.activeMatchupIndex];
+      if (mItem) {
+        const st = mItem.stages.find(s => s.numero === stageNumero);
+        if (st) {
+          st.rider1Ms = null;
+          st.rider2Ms = null;
+          st.fabioMs = null;
+          st.luisMs = null;
+          st.estado = 'PENDIENTE';
+          saveLocalDb(local);
+          await this.refresh();
+          return true;
+        }
       }
       return false;
     }
 
-    async updateRaceStatus(newStatus) {
+    async updateRaceStatus(newStatus, matchupId = null) {
       if (!['PRE-RACE', 'EN CURSO', 'FINALIZADA'].includes(newStatus)) return false;
+      const activeMatchup = this.getActiveMatchup();
+      const targetMatchupId = matchupId || activeMatchup?.id;
+      const isLocalId = !targetMatchupId || String(targetMatchupId).startsWith('local-');
 
-      try {
-        const resp = await apiFetch('/api/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus })
-        });
-        if (resp && resp.ok) {
-          this.isNeon = true;
-          this.isOnline = true;
-          await this.refresh();
-          return true;
+      if (!isLocalId) {
+        try {
+          const resp = await apiFetch('/api/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus, matchupId: targetMatchupId })
+          });
+          if (resp && resp.ok) {
+            this.isNeon = true;
+            this.isOnline = true;
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error updating status on Neon API:', e);
         }
-      } catch (e) {
-        console.error('Error updating status on Neon API:', e);
       }
 
-      if (this.isOnline && this.supabase && this.cachedState) {
+      if (this.isOnline && this.supabase) {
         try {
-          const { matchup } = this.cachedState;
-          const { error } = await this.supabase
+          await this.supabase
             .from('matchups')
             .update({ estado: newStatus, updated_at: new Date().toISOString() })
-            .eq('id', matchup.id);
-          if (error) throw error;
+            .eq('id', targetMatchupId);
           await this.refresh();
           return true;
         } catch (e) {
@@ -593,37 +722,52 @@
       }
 
       const local = loadLocalDb();
-      local.matchup.estado = newStatus;
-      saveLocalDb(local);
-      await this.refresh();
-      return true;
+      const mItem = local.matchups.find(m => m.id === targetMatchupId) || local.matchups[this.activeMatchupIndex];
+      if (mItem) {
+        mItem.estado = newStatus;
+        saveLocalDb(local);
+        await this.refresh();
+        return true;
+      }
+      return false;
     }
 
-    async resetMatchup() {
-      try {
-        const resp = await apiFetch('/api/reset', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (resp && resp.ok) {
-          this.isNeon = true;
-          this.isOnline = true;
-          await this.refresh();
-          return true;
+    async resetMatchup(matchupId = null) {
+      const activeMatchup = this.getActiveMatchup();
+      const targetMatchupId = matchupId || activeMatchup?.id;
+      const isLocalId = !targetMatchupId || String(targetMatchupId).startsWith('local-');
+
+      if (!isLocalId) {
+        try {
+          const resp = await apiFetch('/api/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ matchupId: targetMatchupId })
+          });
+          if (resp && resp.ok) {
+            this.isNeon = true;
+            this.isOnline = true;
+            await this.refresh();
+            return true;
+          }
+        } catch (e) {
+          console.error('Error resetting on Neon API:', e);
         }
-      } catch (e) {
-        console.error('Error resetting on Neon API:', e);
       }
 
-      if (this.isOnline && this.supabase && this.cachedState) {
+      if (this.isOnline && this.supabase) {
         try {
-          const { matchup, stages } = this.cachedState;
-          const stageIds = stages.map(s => s.id);
+          const { data: stages } = await this.supabase
+            .from('stages')
+            .select('id')
+            .eq('matchup_id', targetMatchupId);
 
-          await this.supabase.from('stage_times').delete().in('stage_id', stageIds);
-          await this.supabase.from('stages').update({ estado: 'PENDIENTE' }).in('id', stageIds);
-          await this.supabase.from('matchups').update({ estado: 'PRE-RACE' }).eq('id', matchup.id);
-
+          const stageIds = stages?.map(s => s.id) || [];
+          if (stageIds.length > 0) {
+            await this.supabase.from('stage_times').delete().in('stage_id', stageIds);
+            await this.supabase.from('stages').update({ estado: 'PENDIENTE' }).in('id', stageIds);
+          }
+          await this.supabase.from('matchups').update({ estado: 'PRE-RACE' }).eq('id', targetMatchupId);
           await this.refresh();
           return true;
         } catch (e) {
@@ -631,10 +775,22 @@
         }
       }
 
-      const fresh = getBlankLocalData();
-      saveLocalDb(fresh);
-      await this.refresh();
-      return true;
+      const local = loadLocalDb();
+      const mItem = local.matchups.find(m => m.id === targetMatchupId) || local.matchups[this.activeMatchupIndex];
+      if (mItem) {
+        mItem.estado = 'PRE-RACE';
+        mItem.stages.forEach(st => {
+          st.rider1Ms = null;
+          st.rider2Ms = null;
+          st.fabioMs = null;
+          st.luisMs = null;
+          st.estado = 'PENDIENTE';
+        });
+        saveLocalDb(local);
+        await this.refresh();
+        return true;
+      }
+      return false;
     }
   }
 

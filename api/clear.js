@@ -17,6 +17,7 @@ module.exports = async function handler(req, res) {
   try {
     const body = getBody(req);
     const stageNumero = Number(body.stageNumero);
+    const matchupId = body.matchupId || null;
 
     if (!stageNumero) {
       return res.status(400).json({ ok: false, error: 'Missing or invalid stageNumero' });
@@ -25,7 +26,18 @@ module.exports = async function handler(req, res) {
     const sql = getSql();
     await ensureSchema(sql);
 
-    const [stage] = await sql`SELECT id FROM stages WHERE numero = ${stageNumero} LIMIT 1`;
+    let stage;
+    if (matchupId) {
+      const rows = await sql`SELECT id FROM stages WHERE matchup_id = ${matchupId} AND numero = ${stageNumero} LIMIT 1`;
+      stage = rows[0];
+    } else {
+      const [m] = await sql`SELECT id FROM matchups ORDER BY created_at ASC LIMIT 1`;
+      if (m) {
+        const rows = await sql`SELECT id FROM stages WHERE matchup_id = ${m.id} AND numero = ${stageNumero} LIMIT 1`;
+        stage = rows[0];
+      }
+    }
+
     if (!stage) {
       return res.status(404).json({ ok: false, error: 'Stage not found' });
     }

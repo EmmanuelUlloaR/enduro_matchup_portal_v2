@@ -59,10 +59,18 @@
     </div>
   </header>
 
+  <!-- Selector de Duelo a Gestionar -->
+  <section class="admin-matchup-bar" id="adminMatchupBar">
+    <span class="label">DUELO A GESTIONAR:</span>
+    <div class="matchup-tabs" id="adminMatchupTabs" style="box-shadow:none; padding:3px;">
+      <!-- Pestañas generadas dinámicamente -->
+    </div>
+  </section>
+
   <!-- 1. Estado General de la Carrera -->
   <section class="admin-panel-card">
     <div class="card-title">
-      <span>1. Estado de la Carrera</span>
+      <span>1. Estado de la Carrera (<span id="adminMatchupTitleState">Duelo Activo</span>)</span>
       <span class="status-pill pre-race" id="currentStatusBadge">PRE-RACE</span>
     </div>
     <div class="status-buttons">
@@ -108,13 +116,13 @@
     <!-- Formulario de Entrada de Tiempos -->
     <form id="stageForm">
       <div class="riders-entry">
-        <!-- Entrada Fabio -->
-        <div class="rider-entry-card fabio">
+        <!-- Entrada Rider 1 -->
+        <div class="rider-entry-card fabio" id="adminR1Card">
           <div class="entry-header">
-            <img src="../assets/fabio.png" alt="Fabio Silvestri"/>
+            <img src="../assets/fabio.png" alt="Rider 1" id="adminR1Img"/>
             <div>
-              <h4>Fabio Silvestri</h4>
-              <small>“La Polinada”</small>
+              <h4 id="adminR1Name">Fabio Silvestri</h4>
+              <small id="adminR1Nick">“La Polinada”</small>
             </div>
           </div>
           <div class="field">
@@ -131,13 +139,13 @@
           </div>
         </div>
 
-        <!-- Entrada Luis -->
-        <div class="rider-entry-card luis">
+        <!-- Entrada Rider 2 -->
+        <div class="rider-entry-card luis" id="adminR2Card">
           <div class="entry-header">
-            <img src="../assets/luis.png" alt="Luis Peña"/>
+            <img src="../assets/luis.png" alt="Rider 2" id="adminR2Img"/>
             <div>
-              <h4>Luis Peña</h4>
-              <small>“Don Gata”</small>
+              <h4 id="adminR2Name">Luis Peña</h4>
+              <small id="adminR2Nick">“Don Gata”</small>
             </div>
           </div>
           <div class="field">
@@ -176,9 +184,9 @@
   <!-- 3. Tabla Resumen en Vivo de las 4 Etapas -->
   <section class="admin-panel-card">
     <div class="card-title">
-      <span>3. Resumen Oficial de Tiempos</span>
+      <span>3. Resumen Oficial de Tiempos (<span id="adminMatchupTitleTable">Duelo Activo</span>)</span>
       <button type="button" class="btn subtle" id="resetMatchupBtn" style="margin-left:auto; font-size:11px;">
-        ↺ REINICIAR MATCHUP COMPLETO
+        ↺ REINICIAR ESTE DUELO
       </button>
     </div>
     <div style="overflow-x:auto;">
@@ -187,8 +195,8 @@
           <tr>
             <th>Etapa</th>
             <th>Estado</th>
-            <th>Fabio “La Polinada”</th>
-            <th>Luis “Don Gata”</th>
+            <th id="thAdminR1">Fabio “La Polinada”</th>
+            <th id="thAdminR2">Luis “Don Gata”</th>
             <th>Ganador Etapa</th>
             <th>Diferencia</th>
             <th style="text-align:right;">Acción</th>
@@ -197,6 +205,7 @@
         <tbody id="adminSummaryTableBody">
           <!-- Renderizado dinámico -->
         </tbody>
+      </table>
     </div>
   </section>
 
@@ -441,8 +450,10 @@
     const inputLuis = document.getElementById('inputLuis');
 
     if (stage) {
-      inputFabio.value = stage.fabioMs !== null ? fmt(stage.fabioMs) : '';
-      inputLuis.value = stage.luisMs !== null ? fmt(stage.luisMs) : '';
+      const ms1 = stage.rider1Ms !== undefined && stage.rider1Ms !== null ? stage.rider1Ms : stage.fabioMs;
+      const ms2 = stage.rider2Ms !== undefined && stage.rider2Ms !== null ? stage.rider2Ms : stage.luisMs;
+      inputFabio.value = ms1 !== null ? fmt(ms1) : '';
+      inputLuis.value = ms2 !== null ? fmt(ms2) : '';
     } else {
       inputFabio.value = '';
       inputLuis.value = '';
@@ -473,17 +484,20 @@
     const previewText = document.getElementById('previewText');
     const previewWinnerTag = document.getElementById('previewWinnerTag');
 
+    const p1 = currentState?.participants?.[0] || { nombre: 'Piloto 1' };
+    const p2 = currentState?.participants?.[1] || { nombre: 'Piloto 2' };
+
     if (!isNaN(fMs) && !isNaN(lMs) && fMs !== null && lMs !== null) {
       const diff = lMs - fMs;
       if (diff === 0) {
         previewText.textContent = `Etapa ${activeStage}: Empate exacto (${fmt(fMs)})`;
         previewWinnerTag.innerHTML = '<span class="winner-chip">Empate</span>';
       } else if (diff > 0) {
-        previewText.textContent = `Etapa ${activeStage}: Fabio gana por +${dFmt(diff)}`;
-        previewWinnerTag.innerHTML = '<span class="winner-chip">Fabio</span>';
+        previewText.textContent = `Etapa ${activeStage}: ${p1.nombre} gana por +${dFmt(diff)}`;
+        previewWinnerTag.innerHTML = `<span class="winner-chip">${p1.nombre}</span>`;
       } else {
-        previewText.textContent = `Etapa ${activeStage}: Luis gana por +${dFmt(diff)}`;
-        previewWinnerTag.innerHTML = '<span class="winner-chip">Luis</span>';
+        previewText.textContent = `Etapa ${activeStage}: ${p2.nombre} gana por +${dFmt(diff)}`;
+        previewWinnerTag.innerHTML = `<span class="winner-chip">${p2.nombre}</span>`;
       }
     } else {
       previewText.textContent = `Etapa ${activeStage}: Pendiente de tiempos`;
@@ -550,19 +564,104 @@
     }
   });
 
-  // 9. Reiniciar Matchup Completo
+  // 9. Reiniciar Duelo Completo
   document.getElementById('resetMatchupBtn').addEventListener('click', async () => {
-    if (!confirm('¡ATENCIÓN! Esto borrará todos los tiempos de las 4 etapas y reiniciará la carrera a PRE-RACE. ¿Deseas continuar?')) return;
+    const activeMatchup = service.getActiveMatchup();
+    const mName = activeMatchup?.nombre || 'este duelo';
+    if (!confirm(`¡ATENCIÓN! Esto borrará todos los tiempos de las 4 etapas y reiniciará "${mName}" a PRE-RACE. ¿Deseas continuar?`)) return;
 
     await service.resetMatchup();
     loadStageInputs(currentState);
-    showToast('Matchup reiniciado por completo');
+    showToast('Duelo reiniciado por completo');
   });
+
+  function renderAdminMatchupTabs(allMatchups, activeIdx) {
+    const container = document.getElementById('adminMatchupTabs');
+    if (!container) return;
+
+    if (!allMatchups || allMatchups.length <= 1) {
+      container.parentElement.style.display = 'none';
+      return;
+    }
+    container.parentElement.style.display = 'flex';
+
+    container.innerHTML = allMatchups.map((m, idx) => {
+      const isActive = idx === activeIdx;
+      const p1 = m.participants?.[0] || { nombre: 'Piloto 1' };
+      const p2 = m.participants?.[1] || { nombre: 'Piloto 2' };
+      const stCls = (m.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+      const icon = idx === 0 ? '🔥' : '⚡';
+
+      return `
+        <button type="button" class="matchup-tab ${isActive ? 'active' : ''}" data-admin-idx="${idx}">
+          <span class="tab-icon">${icon}</span>
+          <span>${p1.nombre} vs ${p2.nombre}</span>
+          <span class="tab-badge ${stCls}">${m.estado || 'PRE-RACE'}</span>
+        </button>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.matchup-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-admin-idx'), 10);
+        service.setActiveMatchup(idx);
+        selectStage(1);
+      });
+    });
+  }
 
   // 10. Render del Panel Admin
   function render(state) {
     if (!state) return;
-    const { matchup, stages } = state;
+    const { matchup, stages, participants, allMatchups, activeIndex } = state;
+
+    const currentActiveIdx = activeIndex !== undefined ? activeIndex : service.activeMatchupIndex;
+    renderAdminMatchupTabs(allMatchups || [state], currentActiveIdx);
+
+    const p1 = participants?.[0] || { nombre: 'Fabio', apodo: '“La Polinada”', apellido: 'SILVESTRI', foto_url: '../assets/fabio.png' };
+    const p2 = participants?.[1] || { nombre: 'Luis', apodo: '“Don Gata”', apellido: 'PEÑA', foto_url: '../assets/luis.png' };
+
+    // Actualizar títulos de duelo activo
+    const titleState = document.getElementById('adminMatchupTitleState');
+    const titleTable = document.getElementById('adminMatchupTitleTable');
+    const duelTitle = `${p1.nombre} vs ${p2.nombre}`;
+    if (titleState) titleState.textContent = duelTitle;
+    if (titleTable) titleTable.textContent = duelTitle;
+
+    // Actualizar datos y fotos de los corredores en el formulario
+    const r1Img = document.getElementById('adminR1Img');
+    const r1Name = document.getElementById('adminR1Name');
+    const r1Nick = document.getElementById('adminR1Nick');
+    const r1Card = document.getElementById('adminR1Card');
+
+    const r2Img = document.getElementById('adminR2Img');
+    const r2Name = document.getElementById('adminR2Name');
+    const r2Nick = document.getElementById('adminR2Nick');
+    const r2Card = document.getElementById('adminR2Card');
+
+    if (r1Img) {
+      const src = p1.foto_url.startsWith('http') || p1.foto_url.startsWith('../') ? p1.foto_url : '../' + p1.foto_url;
+      r1Img.src = src;
+      r1Img.alt = p1.nombre;
+    }
+    if (r1Name) r1Name.textContent = `${p1.nombre} ${p1.apellido}`;
+    if (r1Nick) r1Nick.textContent = p1.apodo;
+    if (r1Card) r1Card.className = 'rider-entry-card ' + (currentActiveIdx === 1 ? 'ramon' : 'fabio');
+
+    if (r2Img) {
+      const src = p2.foto_url.startsWith('http') || p2.foto_url.startsWith('../') ? p2.foto_url : '../' + p2.foto_url;
+      r2Img.src = src;
+      r2Img.alt = p2.nombre;
+    }
+    if (r2Name) r2Name.textContent = `${p2.nombre} ${p2.apellido}`;
+    if (r2Nick) r2Nick.textContent = p2.apodo;
+    if (r2Card) r2Card.className = 'rider-entry-card ' + (currentActiveIdx === 1 ? 'ricky' : 'luis');
+
+    // Actualizar cabecera de tabla
+    const th1 = document.getElementById('thAdminR1');
+    const th2 = document.getElementById('thAdminR2');
+    if (th1) th1.textContent = `${p1.nombre} ${p1.apodo}`;
+    if (th2) th2.textContent = `${p2.nombre} ${p2.apodo}`;
 
     // Actualizar badge de estado
     const badge = document.getElementById('currentStatusBadge');
@@ -594,6 +693,10 @@
     if (tbody) {
       tbody.innerHTML = stages.map((s) => {
         const done = s.completed;
+        const ms1 = s.rider1Ms !== undefined && s.rider1Ms !== null ? s.rider1Ms : s.fabioMs;
+        const ms2 = s.rider2Ms !== undefined && s.rider2Ms !== null ? s.rider2Ms : s.luisMs;
+        const isR1Win = s.winner === 'rider1' || s.winner === 'fabio';
+
         let winnerText = '—';
         let deltaText = '—';
 
@@ -601,11 +704,11 @@
           if (s.winner === 'tie') {
             winnerText = '<span class="winner-chip">Empate</span>';
             deltaText = '0.000s';
-          } else if (s.winner === 'fabio') {
-            winnerText = '<span class="winner-chip">Fabio</span>';
+          } else if (isR1Win) {
+            winnerText = `<span class="winner-chip">${p1.nombre}</span>`;
             deltaText = `+${dFmt(s.deltaMs)}`;
           } else {
-            winnerText = '<span class="winner-chip">Luis</span>';
+            winnerText = `<span class="winner-chip">${p2.nombre}</span>`;
             deltaText = `+${dFmt(s.deltaMs)}`;
           }
         }
@@ -614,8 +717,8 @@
           <tr>
             <td><strong>ETAPA 0${s.numero}</strong></td>
             <td><span class="status ${done ? 'done' : ''}">${done ? 'FINALIZADA' : 'PENDIENTE'}</span></td>
-            <td>${fmt(s.fabioMs)}</td>
-            <td>${fmt(s.luisMs)}</td>
+            <td>${fmt(ms1)}</td>
+            <td>${fmt(ms2)}</td>
             <td>${winnerText}</td>
             <td>${deltaText}</td>
             <td style="text-align:right;">
