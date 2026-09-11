@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0d120b"/>
   <meta name="robots" content="noindex, nofollow"/>
   <title>Panel de Control de Carrera — Enduro Evolution 2026</title>
-  <link rel="stylesheet" href="../assets/css/main.css?v=20260909_2"/>
+  <link rel="stylesheet" href="../assets/css/main.css?v=20260911_4"/>
   <!-- Supabase JS Client v2 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -314,8 +314,8 @@
 <div class="toast" id="adminToast">Operación realizada</div>
 
 <!-- Scripts -->
-<script src="../assets/js/config.js?v=20260909_2"></script>
-<script src="../assets/js/supabase-service.js?v=20260909_2"></script>
+<script src="../assets/js/config.js?v=20260911_4"></script>
+<script src="../assets/js/supabase-service.js?v=20260911_4"></script>
 <script>
 (function() {
   'use strict';
@@ -326,6 +326,20 @@
 
   let activeStage = 1;
   let currentState = null;
+
+  // Delegación de eventos para las pestañas de matchups en Admin (se activa una sola vez)
+  const adminTabsContainer = document.getElementById('adminMatchupTabs');
+  if (adminTabsContainer) {
+    adminTabsContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.matchup-tab');
+      if (!btn) return;
+      const idx = parseInt(btn.getAttribute('data-admin-idx'), 10);
+      if (!isNaN(idx)) {
+        service.setActiveMatchup(idx);
+        selectStage(1);
+      }
+    });
+  }
 
   // 1. Verificación de Autenticación
   function isAuthenticated() {
@@ -589,31 +603,26 @@
       const isActive = idx === activeIdx;
       const p1 = m.participants?.[0] || { nombre: 'Piloto 1' };
       const p2 = m.participants?.[1] || { nombre: 'Piloto 2' };
-      const stCls = (m.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+      const st = (m.matchup && m.matchup.estado) || m.estado || 'PRE-RACE';
+      const stCls = st.toLowerCase().replace(' ', '-');
       const icon = idx === 0 ? '🔥' : '⚡';
 
       return `
         <button type="button" class="matchup-tab ${isActive ? 'active' : ''}" data-admin-idx="${idx}">
           <span class="tab-icon">${icon}</span>
           <span>${p1.nombre} vs ${p2.nombre}</span>
-          <span class="tab-badge ${stCls}">${m.estado || 'PRE-RACE'}</span>
+          <span class="tab-badge ${stCls}">${st}</span>
         </button>
       `;
     }).join('');
-
-    container.querySelectorAll('.matchup-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-admin-idx'), 10);
-        service.setActiveMatchup(idx);
-        selectStage(1);
-      });
-    });
   }
 
   // 10. Render del Panel Admin
   function render(state) {
     if (!state) return;
-    const { matchup, stages, participants, allMatchups, activeIndex } = state;
+    const { stages, participants, allMatchups, activeIndex } = state;
+    const matchup = state.matchup || state;
+    const estado = (matchup && matchup.estado) || state.estado || 'PRE-RACE';
 
     const currentActiveIdx = activeIndex !== undefined ? activeIndex : service.activeMatchupIndex;
     renderAdminMatchupTabs(allMatchups || [state], currentActiveIdx);
@@ -666,16 +675,16 @@
     // Actualizar badge de estado
     const badge = document.getElementById('currentStatusBadge');
     if (badge) {
-      const cls = (matchup.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+      const cls = estado.toLowerCase().replace(' ', '-');
       badge.className = `status-pill ${cls}`;
-      badge.textContent = matchup.estado;
+      badge.textContent = estado;
     }
 
     // Botones de estado activos
     Object.entries(statusBtns).forEach(([status, btn]) => {
       if (btn) {
         const cls = status.toLowerCase().replace(' ', '-');
-        btn.className = `status-btn ${cls}` + (matchup.estado === status ? ' active' : '');
+        btn.className = `status-btn ${cls}` + (estado === status ? ' active' : '');
       }
     });
 

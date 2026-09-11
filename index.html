@@ -8,7 +8,7 @@
   <meta name="description"
     content="Live Timing oficial del Match Up en Llamas — Enduro Evolution 2026: Fabio Silvestri vs Luis Peña." />
   <title>Live Timing — Enduro Evolution 2026 | Match Up en Llamas</title>
-  <link rel="stylesheet" href="assets/css/main.css?v=20260909_2" />
+  <link rel="stylesheet" href="assets/css/main.css?v=20260911_4" />
   <!-- Supabase JS Client v2 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -246,8 +246,8 @@
   <div class="toast" id="toast">Live Timing actualizado</div>
 
   <!-- Scripts -->
-  <script src="assets/js/config.js?v=20260909_2"></script>
-  <script src="assets/js/supabase-service.js?v=20260909_2"></script>
+  <script src="assets/js/config.js?v=20260911_4"></script>
+  <script src="assets/js/supabase-service.js?v=20260911_4"></script>
   <script>
     (function () {
       'use strict';
@@ -259,12 +259,40 @@
       let winnerShown = false;
       let flashTimer = null;
 
-      // Inicialización de hash URL si se especifica un duelo
-      if (window.location.hash) {
+      function syncHashMatchup() {
+        if (!window.location.hash) return;
         const h = window.location.hash.toLowerCase();
         if (h.includes('ramon') || h.includes('ricky') || h.includes('matchup-2') || h.includes('duelo-2')) {
+          winnerShown = false;
+          lastStageTimes = [null, null, null, null];
           service.setActiveMatchup(1);
+        } else if (h.includes('fabio') || h.includes('luis') || h.includes('matchup-1') || h.includes('duelo-1')) {
+          winnerShown = false;
+          lastStageTimes = [null, null, null, null];
+          service.setActiveMatchup(0);
         }
+      }
+
+      // Inicialización de hash URL si se especifica un duelo
+      syncHashMatchup();
+      window.addEventListener('hashchange', syncHashMatchup);
+
+      // Delegación de eventos para las pestañas de matchups (se registra una única vez)
+      const tabsContainer = document.getElementById('matchupTabs');
+      if (tabsContainer) {
+        tabsContainer.addEventListener('click', (e) => {
+          const btn = e.target.closest('.matchup-tab');
+          if (!btn) return;
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          if (!isNaN(idx)) {
+            winnerShown = false;
+            lastStageTimes = [null, null, null, null];
+            service.setActiveMatchup(idx);
+            try {
+              window.location.hash = idx === 1 ? 'ramon-vs-ricky' : 'fabio-vs-luis';
+            } catch(e) {}
+          }
+        });
       }
 
       // Actualizar indicador de conexión Realtime
@@ -367,33 +395,25 @@
           const isActive = idx === activeIndex;
           const p1 = m.participants?.[0] || { nombre: 'Piloto 1' };
           const p2 = m.participants?.[1] || { nombre: 'Piloto 2' };
-          const stCls = (m.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+          const st = (m.matchup && m.matchup.estado) || m.estado || 'PRE-RACE';
+          const stCls = st.toLowerCase().replace(' ', '-');
           const icon = idx === 0 ? '🔥' : '⚡';
 
           return `
             <button type="button" class="matchup-tab ${isActive ? 'active' : ''}" data-idx="${idx}">
               <span class="tab-icon">${icon}</span>
               <span>${p1.nombre} vs ${p2.nombre}</span>
-              <span class="tab-badge ${stCls}">${m.estado || 'PRE-RACE'}</span>
+              <span class="tab-badge ${stCls}">${st}</span>
             </button>
           `;
         }).join('');
-
-        container.querySelectorAll('.matchup-tab').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const idx = parseInt(btn.getAttribute('data-idx'), 10);
-            winnerShown = false;
-            service.setActiveMatchup(idx);
-            try {
-              window.location.hash = idx === 1 ? 'ramon-vs-ricky' : 'fabio-vs-luis';
-            } catch(e) {}
-          });
-        });
       }
 
       function render(state) {
         if (!state) return;
-        const { matchup, stages, totals, scores, leader, participants, allMatchups, activeIndex } = state;
+        const { stages, totals, scores, leader, participants, allMatchups, activeIndex } = state;
+        const matchup = state.matchup || state;
+        const estado = (matchup && matchup.estado) || state.estado || 'PRE-RACE';
 
         const currentActiveIdx = activeIndex !== undefined ? activeIndex : service.activeMatchupIndex;
         renderMatchupTabs(allMatchups || [state], currentActiveIdx);
@@ -404,17 +424,17 @@
         // 1. Estado de carrera (PRE-RACE, EN CURSO, FINALIZADA)
         const statusBadge = document.getElementById('raceStatusBadge');
         const liveText = document.getElementById('raceStateText');
-        const statusCls = (matchup.estado || 'PRE-RACE').toLowerCase().replace(' ', '-');
+        const statusCls = estado.toLowerCase().replace(' ', '-');
 
         if (statusBadge) {
           statusBadge.className = `status-pill ${statusCls}`;
-          statusBadge.textContent = matchup.estado;
+          statusBadge.textContent = estado;
         }
 
         if (liveText) {
-          if (matchup.estado === 'FINALIZADA' || totals.isFinished) {
+          if (estado === 'FINALIZADA' || totals.isFinished) {
             liveText.textContent = 'RESULTADO FINAL';
-          } else if (matchup.estado === 'EN CURSO') {
+          } else if (estado === 'EN CURSO') {
             liveText.textContent = 'EN CURSO · LIVE';
           } else {
             liveText.textContent = 'PRE-RACE';
@@ -437,7 +457,7 @@
         if (fabioScore) fabioScore.textContent = s1Score;
         if (luisScore) luisScore.textContent = s2Score;
 
-        const isFinal = totals.completed === 4 || matchup.estado === 'FINALIZADA';
+        const isFinal = totals.completed === 4 || estado === 'FINALIZADA';
         const isR1Leading = leader.winner === 'rider1' || leader.winner === 'fabio';
         const isR2Leading = leader.winner === 'rider2' || leader.winner === 'luis';
 

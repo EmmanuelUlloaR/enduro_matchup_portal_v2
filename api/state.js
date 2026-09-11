@@ -117,6 +117,7 @@ module.exports = async function handler(req, res) {
         estado: matchup.estado,
         fecha: matchup.fecha,
         index: mIndex,
+        matchup,
         participants,
         stages,
         totals: {

@@ -279,8 +279,12 @@
       }
 
       if (this.allMatchups && this.allMatchups[this.activeMatchupIndex]) {
+        const current = this.allMatchups[this.activeMatchupIndex];
+        const mObj = current.matchup || { id: current.id, nombre: current.nombre, estado: current.estado, fecha: current.fecha };
         this.cachedState = {
-          ...this.allMatchups[this.activeMatchupIndex],
+          ...current,
+          matchup: mObj,
+          estado: mObj.estado || current.estado || 'PRE-RACE',
           allMatchups: this.allMatchups,
           activeIndex: this.activeMatchupIndex,
           isOnline: this.isOnline,
@@ -291,7 +295,11 @@
     }
 
     getActiveMatchup() {
-      return this.allMatchups[this.activeMatchupIndex] || this.cachedState;
+      const active = this.allMatchups[this.activeMatchupIndex] || this.cachedState;
+      if (active) {
+        active.matchup = active.matchup || { id: active.id, nombre: active.nombre, estado: active.estado, fecha: active.fecha };
+      }
+      return active;
     }
 
     getAllMatchups() {
@@ -415,7 +423,15 @@
             this.notifyStatus('connected');
 
             if (json.matchups && json.matchups.length >= 2) {
-              this.allMatchups = json.matchups;
+              this.allMatchups = json.matchups.map((m, idx) => {
+                const mObj = m.matchup || { id: m.id, nombre: m.nombre, estado: m.estado, fecha: m.fecha };
+                return {
+                  ...m,
+                  index: idx,
+                  matchup: mObj,
+                  estado: mObj.estado || m.estado || 'PRE-RACE'
+                };
+              });
             } else if (json.data || (json.matchups && json.matchups.length === 1)) {
               const primary = json.data || json.matchups[0];
               const local = loadLocalDb();
@@ -431,8 +447,11 @@
             }
 
             const current = this.allMatchups[this.activeMatchupIndex] || this.allMatchups[0];
+            const mObj = current.matchup || { id: current.id, nombre: current.nombre, estado: current.estado, fecha: current.fecha };
             this.cachedState = {
               ...current,
+              matchup: mObj,
+              estado: mObj.estado || current.estado || 'PRE-RACE',
               allMatchups: this.allMatchups,
               activeIndex: this.activeMatchupIndex,
               isOnline: true,
@@ -480,8 +499,11 @@
           });
 
           const current = this.allMatchups[this.activeMatchupIndex] || this.allMatchups[0];
+          const mObj = current.matchup || { id: current.id, nombre: current.nombre, estado: current.estado, fecha: current.fecha };
           this.cachedState = {
             ...current,
+            matchup: mObj,
+            estado: mObj.estado || current.estado || 'PRE-RACE',
             allMatchups: this.allMatchups,
             activeIndex: this.activeMatchupIndex,
             isOnline: true,
@@ -506,8 +528,11 @@
       });
 
       const current = this.allMatchups[this.activeMatchupIndex] || this.allMatchups[0];
+      const mObj = current.matchup || { id: current.id, nombre: current.nombre, estado: current.estado, fecha: current.fecha };
       this.cachedState = {
         ...current,
+        matchup: mObj,
+        estado: mObj.estado || current.estado || 'PRE-RACE',
         allMatchups: this.allMatchups,
         activeIndex: this.activeMatchupIndex,
         isOnline: false,
